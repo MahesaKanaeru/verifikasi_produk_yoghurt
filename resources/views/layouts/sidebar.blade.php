@@ -17,8 +17,8 @@
             </a>
         </li>
 
-        <li class="{{ Request::is('produksi*') ? 'active' : '' }}">
-            <a href="{{ route('produksi.index') }}">
+        <li class="{{ Request::is('production*') ? 'active' : '' }}">
+            <a href="{{ route('production.index') }}">
                 <i class="fas fa-industry"></i> Data Produksi
             </a>
         </li>

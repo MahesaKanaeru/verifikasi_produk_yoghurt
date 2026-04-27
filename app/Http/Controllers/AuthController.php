@@ -14,13 +14,10 @@ class AuthController extends Controller
         'password' => ['required'],
     ]);
 
-    // Ambil nilai dari checkbox 'remember' di form login
     $remember = $request->has('remember'); 
-
-    // Masukkan variabel $remember sebagai argumen kedua
     if (Auth::attempt($credentials, $remember)) {
         $request->session()->regenerate();
-        return redirect()->intended('dashboard');
+        return redirect()->intended('/dashboard');
     }
 
     return back()->withErrors(['email' => 'Email atau password salah!']);
