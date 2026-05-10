@@ -68,61 +68,6 @@
     line-height: 1.6;
 }
 
-/* ── Quick access card ────────────────────── */
-.quick-card {
-    background: #fff;
-    border-radius: 18px;
-    border: 1px solid #e6f7fb;
-    padding: 24px 20px;
-    height: 100%;
-    box-shadow: 0 2px 12px rgba(0,168,204,.07);
-}
-.quick-card h6 {
-    font-size: .7rem;
-    font-weight: 700;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    color: #aaa;
-    margin-bottom: 16px;
-}
-.quick-btn {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 13px 16px;
-    border-radius: 12px;
-    border: 1.5px solid #e0f7fc;
-    background: #f7fdff;
-    color: #00a8cc;
-    font-weight: 600;
-    font-size: .88rem;
-    text-decoration: none;
-    transition: all .22s ease;
-    width: 100%;
-    margin-bottom: 10px;
-}
-.quick-btn:last-child { margin-bottom: 0; }
-.quick-btn:hover {
-    background: #00a8cc;
-    border-color: #00a8cc;
-    color: #fff;
-    transform: translateX(3px);
-    box-shadow: 0 4px 14px rgba(0,168,204,.25);
-}
-.quick-btn .qb-icon {
-    width: 34px; height: 34px;
-    border-radius: 8px;
-    background: rgba(0,168,204,.12);
-    display: flex; align-items: center; justify-content: center;
-    font-size: .95rem;
-    flex-shrink: 0;
-    transition: background .22s;
-}
-.quick-btn:hover .qb-icon {
-    background: rgba(255,255,255,.22);
-    color: #fff;
-}
-
 /* ── Stat cards ───────────────────────────── */
 .stat-card {
     background: #fff;
@@ -200,7 +145,6 @@
 }
 .table-card-header a:hover { text-decoration: underline; }
 
-/* Scrollable table on mobile */
 .table-responsive-wrap {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
@@ -240,15 +184,14 @@
     font-size: .7rem;
     font-weight: 700;
 }
-.badge-fresh  { background: #e8f5e9; color: #2e7d32; }
-.badge-warn   { background: #fff3e0; color: #e65100; }
-.badge-expired{ background: #fce4ec; color: #b71c1c; }
+.badge-fresh   { background: #e8f5e9; color: #2e7d32; }
+.badge-warn    { background: #fff3e0; color: #e65100; }
+.badge-expired { background: #fce4ec; color: #b71c1c; }
 
 /* ── Mobile tweaks ────────────────────────── */
 @media (max-width: 767.98px) {
     .welcome-card { padding: 22px 20px 20px; border-radius: 15px; }
     .welcome-card h2 { font-size: 1.2rem; }
-    .quick-card { padding: 18px 16px; border-radius: 15px; }
     .stat-card { padding: 16px 15px; border-radius: 13px; }
     .stat-value { font-size: 1.35rem; }
     .stat-icon { width: 42px; height: 42px; font-size: 1rem; }
@@ -257,7 +200,7 @@
 
 <div class="container-fluid px-3 px-md-4 py-3">
 
-    {{-- ① Welcome  ─────────────────────────────── --}}
+    {{-- ① Welcome ─────────────────────────────── --}}
     <div class="row g-3 mb-4 db-section">
         <div class="col-12">
             <div class="welcome-card">
@@ -274,7 +217,7 @@
         </div>
     </div>
 
-    {{-- ② Stat Cards ─────────────────────────────────────────── --}}
+    {{-- ② Stat Cards ──────────────────────────── --}}
     <div class="row g-3 mb-4 db-section">
 
         <div class="col-6 col-md-4">
@@ -324,7 +267,7 @@
 
     </div>
 
-    {{-- ③ Recent QR Table ─────────────────────────────────────── --}}
+    {{-- ③ Recent QR Table ─────────────────────── --}}
     <div class="db-section">
         <div class="table-card">
             <div class="table-card-header">
@@ -347,15 +290,23 @@
                         @forelse($recentQr ?? [] as $i => $item)
                         <tr>
                             <td style="color:#bbb; font-size:.7rem;">{{ $i + 1 }}</td>
-                            <td style="font-family: monospace; font-weight:600; color:#00a8cc;">
-                                {{ $item->production_code }}
+
+                            {{-- production_number = plain (VY00001), bukan production_code (cipher) --}}
+                            <td style="font-family:monospace; font-weight:600; color:#00a8cc;">
+                                {{ $item->production_number }}
                             </td>
+
                             <td>{{ $item->product->nama_produk ?? '-' }}</td>
+
                             <td>{{ \Carbon\Carbon::parse($item->production_date)->format('d M Y') }}</td>
-                            <td>{{ \Carbon\Carbon::parse($item->expiration_date)->format('d M Y') }}</td>
+
+                            {{-- plain_expiry sudah di-decrypt di DashboardController --}}
+                            <td>{{ $item->plain_expiry }}</td>
+
                             <td>
                                 @php
-                                    $daysLeft = now()->diffInDays($item->expiration_date, false);
+                                    // plain_expiry_carbon = objek Carbon hasil decrypt 
+                                    $daysLeft = now()->startOfDay()->diffInDays($item->plain_expiry_carbon, false);
                                 @endphp
                                 @if($daysLeft < 0)
                                     <span class="badge-status badge-expired">Kedaluwarsa</span>
@@ -382,12 +333,11 @@
 </div>
 
 <script>
-// Tampilkan hari + tanggal Indonesia real-time
-const days = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+const days   = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
 const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
-const now = new Date();
-const label = `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
-document.getElementById('hari-ini').textContent = label;
+const now    = new Date();
+document.getElementById('hari-ini').textContent =
+    `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
 </script>
 
 @endsection

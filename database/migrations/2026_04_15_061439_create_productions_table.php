@@ -10,12 +10,14 @@ return new class extends Migration
     {
         Schema::create('productions', function (Blueprint $table) {
             $table->id();
-            $table->string('production_code')->unique(); // Contoh: VY00001
-            $table->foreignId('product_id')->constrained('products')->onDelete('cascade');
+            $table->string('production_number')->unique();   // plain: VY00001 (display & urutan)
+            $table->string('production_code', 500);         // cipher dari production_number
+            $table->foreignId('product_id')->constrained()->onDelete('cascade');
+            $table->unsignedInteger('qty')->default(0);     // jumlah pcs / botol
             $table->date('production_date');
-            $table->date('expiration_date');
+            $table->string('expiration_date', 500);         // cipher dari format Ymd
             $table->string('qr_code_path')->nullable();
-            $table->string('final_label_path')->nullable(); // Sesuai dengan blade kamu sebelumnya
+            $table->string('final_label_path')->nullable();
             $table->timestamps();
         });
     }

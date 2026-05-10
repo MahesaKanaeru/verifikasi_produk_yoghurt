@@ -6,6 +6,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ScanController;
 use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\LaporanController;
 
 /*
 |--------------------------------------------------------------------------
@@ -13,11 +14,7 @@ use App\Http\Controllers\DashboardController;
 |--------------------------------------------------------------------------
 */
 
-// Halaman Welcome & Scanner
-// ?scan=ENCRYPTED → auto-trigger modal verifikasi (deep link dari QR)
 Route::get('/', [ScanController::class, 'index'])->name('welcome');
-
-// API verifikasi QR — dipanggil via fetch() dari JS
 Route::post('/api/verify-qr', [ScanController::class, 'verifyQr'])->name('verify-qr');
 
 
@@ -48,6 +45,9 @@ Route::middleware('auth')->group(function () {
     Route::resource('production', ProductionController::class);
     Route::get('production/{production}/download-qr',    [ProductionController::class, 'downloadQr'])->name('production.download-qr');
     Route::get('production/{production}/download-label', [ProductionController::class, 'downloadLabel'])->name('production.download-label');
+
+    Route::get('/laporan', [LaporanController::class, 'index'])->name('laporan.index');
+    Route::get('/laporan/pdf',  [LaporanController::class, 'pdf'])->name('laporan.pdf');
 
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 

@@ -4,9 +4,10 @@
             <button id="sidebarCollapse" class="btn btn-info text-white me-3">
                 <i class="fas fa-bars"></i>
             </button>
-            <a class="navbar-brand fw-bold text-info" href="{{ route('dashboard') }}" style="letter-spacing: 1px;">VTAYA</a>
+                <a class="navbar-brand" href="{{ route('dashboard') }}">
+                    <img src="{{ asset('storage/images/vtaya_logo.png') }}" alt="VTAYA" height="64" style="object-fit: contain;">
+                </a>
         </div>
-
         <div class="ms-auto">
             <div class="dropdown">
                 <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">

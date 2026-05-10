@@ -2,62 +2,36 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Production extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
-        'production_code', 'product_id', 'production_date', 
-        'expiration_date', 'encrypted_text', 'qr_code_path', 'final_label_path'
+        'production_number',
+        'production_code',
+        'product_id',
+        'qty',
+        'production_date',
+        'expiration_date',
+        'qr_code_path',
+        'final_label_path',
     ];
 
-    // Karena tipe datanya date, kita cast agar otomatis jadi objek Carbon
-    protected $casts = [
-        'production_date' => 'date',
-        'expiration_date' => 'date',
-    ];
-
-    // Relasi ke tabel Product
-    public function product()
+    public function product(): BelongsTo
     {
-        return $this->belongsTo(Product::class, 'product_id');
+        return $this->belongsTo(Product::class);
     }
 
-    // Generate otomatis VY00001
-    public static function generateProductionCode()
+    public static function generateProductionCode(): string
     {
-        $last = self::orderBy('id', 'desc')->first();
-        if (!$last) return 'VY00001';
-        
-        $number = str_replace('VY', '', $last->production_code);
-        return 'VY' . sprintf('%05d', (int)$number + 1);
-    }
+        $latest = self::orderBy('id', 'desc')->value('production_number');
 
-    // Helper untuk Blade: Cek apakah sudah expired
-    public function isExpired()
-    {
-        return Carbon::now()->startOfDay()->greaterThan($this->expiration_date);
-    }
+        if (!$latest) {
+            return 'VY00001';
+        }
 
-    // Helper untuk Blade: Hitung sisa hari
-    public function getDaysLeftAttribute()
-    {
-        return Carbon::now()->startOfDay()->diffInDays($this->expiration_date, false);
-    }
-
-    // Accessor untuk id_produksi (alias production_code)
-    public function getIdProduksiAttribute()
-    {
-        return $this->production_code;
-    }
-
-    // Helper untuk Blade: Cek apakah mendekati expired (H-7)
-    public function isNearExpiry()
-    {
-        return $this->days_left <= 7 && $this->days_left >= 0;
+        $number = (int) substr($latest, 2);
+        return 'VY' . str_pad($number + 1, 5, '0', STR_PAD_LEFT);
     }
 }

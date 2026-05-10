@@ -227,7 +227,11 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-semibold">Ukuran</label>
-                        <input type="text" name="ukuran" class="form-control" placeholder="250ml" required>
+                        <select name="ukuran" class="form-select" required>
+                            <option value="">-- Pilih Ukuran --</option>
+                            <option value="200 ml (CUP)">200 ml (CUP)</option>
+                            <option value="250 ml (Bottle)">250 ml (Bottle)</option>
+                        </select>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-semibold">Est. Expired (Hari)</label>
@@ -279,9 +283,13 @@
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label fw-semibold">Ukuran</label>
-                        <input type="text" name="ukuran" id="edit_ukuran" class="form-control" required>
-                    </div>
+                    <label class="form-label fw-semibold">Ukuran</label>
+                    <select name="ukuran" id="edit_ukuran" class="form-select" required>
+                        <option value="">-- Pilih Ukuran --</option>
+                        <option value="200 ml (CUP)">200 ml (CUP)</option>
+                        <option value="250 ml (Bottle)">250 ml (Bottle)</option>
+                    </select>
+                </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-semibold">Est. Expired (Hari)</label>
                         <input type="number" name="estimasi_expired" id="edit_expired"
@@ -426,7 +434,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             document.getElementById('formEdit').action    = `/produk/${this.dataset.id}`;
             document.getElementById('edit_nama').value    = this.dataset.nama;
-            document.getElementById('edit_ukuran').value  = this.dataset.ukuran;
+            const selectUkuran = document.getElementById('edit_ukuran');
+            selectUkuran.value = this.dataset.ukuran;
             document.getElementById('edit_expired').value = this.dataset.expired;
 
             const infoFoto  = document.getElementById('info_foto_produk');

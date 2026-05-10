@@ -1,7 +1,8 @@
 <nav id="sidebar">
     <div class="sidebar-header text-center">
-        <h3 class="fw-bold mb-0" style="letter-spacing: 2px;">VTAYA</h3>
-        <small class="opacity-75">Yoghurt Management</small>
+        <img src="{{ asset('storage/images/vtaya_logo.png') }}" alt="VTAYA" height="64" style="object-fit: contain;">
+        <small class="d-block opacity-75 mt-1">Vtaya Yoghurt</small>
+        <small class="d-block opacity-75 mt-1">Kelola Produk dan produksi</small>
     </div>
 
     <ul class="list-unstyled components mt-4">
@@ -22,8 +23,14 @@
                 <i class="fas fa-industry"></i> Data Produksi
             </a>
         </li>
+
+        <li class="{{ Request::is('laporan*') ? 'active' : '' }}">
+            <a href="{{ route('laporan.index') }}">
+                <i class="fas fa-chart-bar"></i> Laporan
+            </a>
+        </li>
     </ul>
-    
+
     <div class="position-absolute bottom-0 w-100 p-3 text-center opacity-50">
         <small>v1.0.0-Stable</small>
     </div>

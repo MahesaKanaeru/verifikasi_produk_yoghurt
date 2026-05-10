@@ -131,7 +131,7 @@
 
 {{-- HERO --}}
 <section class="hero-section text-center">
-    <div class="container position-relative" style="z-index:1;">
+        <div class="container position-relative" style="z-index:1;">
         <p class="text-uppercase text-secondary fw-semibold mb-2"
            style="letter-spacing:3px; font-size:0.78rem;">
             Selamat Datang di VTAYA
@@ -231,9 +231,9 @@
                     <i class="fab fa-instagram fs-5"></i>
                     <span style="font-size:0.88rem;">@vtaya_yoghurt</span>
                 </a>
-                <a href="#" class="d-flex align-items-center mb-3 gap-3">
+                <a href="https://wa.me/6287724025779" target="_blank" class="d-flex align-items-center mb-3 gap-3">
                     <i class="fab fa-whatsapp fs-5"></i>
-                    <span style="font-size:0.88rem;">+62 812-xxxx-xxxx</span>
+                    <span style="font-size:0.88rem;">+62 877-2402-5779</span>
                 </a>
                 <a href="https://maps.app.goo.gl/VT3PLbrsw2keGZSr6" target="_blank"
                    class="d-flex align-items-start gap-3">

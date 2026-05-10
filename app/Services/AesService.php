@@ -9,9 +9,9 @@ class AesService
 
     public function __construct()
     {
-        // $this->key = config('label.aes_key');
-        $env = env('AES_KEY', '1234567890123456');
-        $this->key = config($env);
+        $this->key = config('label.aes_key');
+        // $env = env('AES_KEY', '1234567890123456');
+        // $this->key = config($env);
         $this->cipher = 'aes-128-ecb'; 
     }
     public function encrypt($plainText)
