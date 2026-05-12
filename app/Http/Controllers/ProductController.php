@@ -23,11 +23,26 @@ class ProductController extends Controller {
 
         $data['kode_produk'] = Product::generateKode();
 
-        if($request->hasFile('foto_produk')) {
-            $data['foto_produk'] = $request->file('foto_produk')->store('produk', 'public');
+        if ($request->hasFile('foto_produk')) {
+
+            $file = $request->file('foto_produk');
+
+            $filename = time().'_'.$file->getClientOriginalName();
+
+            $file->storeAs('produk', $filename, 'public');
+
+            $data['foto_produk'] = 'produk/'.$filename;
         }
-        if($request->hasFile('foto_label')) {
-            $data['foto_label'] = $request->file('foto_label')->store('label', 'public');
+
+        if ($request->hasFile('foto_label')) {
+
+            $file = $request->file('foto_label');
+
+            $filename = time().'_'.$file->getClientOriginalName();
+
+            $file->storeAs('label', $filename, 'public');
+
+            $data['foto_label'] = 'label/'.$filename;
         }
 
         Product::create($data);
@@ -48,10 +63,25 @@ class ProductController extends Controller {
         $produk->estimasi_expired = $request->estimasi_expired;
 
         if ($request->hasFile('foto_produk')) {
-            $produk->foto_produk = $request->file('foto_produk')->store('produk', 'public');
+
+            $file = $request->file('foto_produk');
+
+            $filename = time().'_'.$file->getClientOriginalName();
+
+            $file->storeAs('produk', $filename, 'public');
+
+            $produk->foto_produk = 'produk/'.$filename;
         }
+
         if ($request->hasFile('foto_label')) {
-            $produk->foto_label = $request->file('foto_label')->store('label', 'public');
+
+            $file = $request->file('foto_label');
+
+            $filename = time().'_'.$file->getClientOriginalName();
+
+            $file->storeAs('label', $filename, 'public');
+
+            $produk->foto_label = 'label/'.$filename;
         }
         $produk->save();
         return back()->with('success', 'Produk berhasil diperbarui!');

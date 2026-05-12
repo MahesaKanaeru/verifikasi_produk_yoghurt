@@ -35,7 +35,16 @@ class QrService
         $qrImage  = (new QRCode($options))->render($deepLink);
         $fileName = 'qr_codes/' . $plainCode . '.png';
 
-        Storage::disk('public')->put($fileName, $qrImage);
+        $qrPath = public_path('storage/qr_codes');
+
+        if (!file_exists($qrPath)) {
+            mkdir($qrPath, 0777, true);
+        }
+
+        file_put_contents(
+            public_path('storage/' . $fileName),
+            $qrImage
+        );
 
         return $fileName;
     }

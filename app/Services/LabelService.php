@@ -75,11 +75,16 @@ class LabelService
 
         $fileName = 'final_labels/' . $productionCode . '_label.png';
 
-        if (!Storage::disk('public')->exists('final_labels')) {
-            Storage::disk('public')->makeDirectory('final_labels');
+        $publicStoragePath = public_path('storage/final_labels');
+
+        if (!file_exists($publicStoragePath)) {
+            mkdir($publicStoragePath, 0777, true);
         }
 
-        $label->save(Storage::disk('public')->path($fileName), 100);
+        $label->save(
+            public_path('storage/' . $fileName),
+            100
+        );
 
         return $fileName;
     }
