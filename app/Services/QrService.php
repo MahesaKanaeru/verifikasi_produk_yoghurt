@@ -1,23 +1,18 @@
 <?php
 
 namespace App\Services;
-
-
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
 use chillerlan\QRCode\Output\QRGdImagePNG;
 
 class QrService
 {
-    /**
-     * Generate QR Code.
-     *
-     * $plainCode     : untuk nama file QR saja (tidak masuk URL).
-     * $encryptedCode : hex string hasil AesService::encrypt() → masuk ke URL.
-     *
-     * URL format: https://domain.com/?scan=1a2b3c4d... (hex, aman tanpa encoding tambahan)
-     * Hex hanya mengandung 0-9 dan a-f sehingga aman langsung di URL.
-     */
+    private function storagePath(string $relativePath = ''): string
+    {
+        $base = '/home/cery9751/public_html/vtaya-yoghurt-verify.my.id/storage';
+        return $relativePath ? $base . '/' . ltrim($relativePath, '/') : $base;
+    }
+
     public function generate(string $plainCode, string $encryptedCode): string
     {
         $deepLink = rtrim(config('app.url'), '/') . '/?scan=' . urlencode($encryptedCode);
@@ -33,24 +28,19 @@ class QrService
 
         $qrImage  = (new QRCode($options))->render($deepLink);
 
-        // ── Nama file aman (strip karakter non-alfanumerik selain strip/underscore) ──
         $safeName = preg_replace('/[^\w\-]/u', '_', $plainCode);
         $filename = $safeName . '.png';
 
-        // ── Pastikan folder ada ───────────────────────────────────────────────
-        $folder = public_path('storage/qr_codes');
+        $folder = $this->storagePath('qr_codes');
         if (!is_dir($folder)) {
-            mkdir($folder, 0755, true);  // 0755, bukan 0777
+            mkdir($folder, 0755, true);
         }
 
-        // ── Simpan file ───────────────────────────────────────────────────────
         file_put_contents($folder . DIRECTORY_SEPARATOR . $filename, $qrImage);
 
-        // ── Return path DB: "qr_codes/xxx.png" ───────────────────────────────
         return 'qr_codes/' . $filename;
     }
 }
-
 
 // old
 // use chillerlan\QRCode\QRCode;

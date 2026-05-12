@@ -2,8 +2,6 @@
 
 namespace App\Http\Controllers;
 
-
-
 use App\Models\Product;
 use App\Models\Production;
 use App\Services\AesService;
@@ -14,6 +12,12 @@ use Illuminate\Http\Request;
 
 class ProductionController extends Controller
 {
+    private function storagePath(string $relativePath = ''): string
+    {
+        $base = '/home/cery9751/public_html/vtaya-yoghurt-verify.my.id/storage';
+        return $relativePath ? $base . '/' . ltrim($relativePath, '/') : $base;
+    }
+
     public function index(AesService $aes)
     {
         $productions = Production::with('product')
@@ -72,7 +76,7 @@ class ProductionController extends Controller
     }
 
     // ─────────────────────────────────────────────
-    //  DOWNLOAD — tidak pakai Storage::disk('public')
+    //  DOWNLOAD
     // ─────────────────────────────────────────────
 
     public function downloadLabel(Production $production)
@@ -81,7 +85,7 @@ class ProductionController extends Controller
             return redirect()->back()->with('error', 'Label final belum tersedia.');
         }
 
-        $absolutePath = public_path('storage/' . $production->final_label_path);
+        $absolutePath = $this->storagePath($production->final_label_path);
 
         if (!file_exists($absolutePath)) {
             return redirect()->back()->with('error', 'Label final belum tersedia.');
@@ -96,7 +100,7 @@ class ProductionController extends Controller
             return redirect()->back()->with('error', 'QR Code belum tersedia.');
         }
 
-        $absolutePath = public_path('storage/' . $production->qr_code_path);
+        $absolutePath = $this->storagePath($production->qr_code_path);
 
         if (!file_exists($absolutePath)) {
             return redirect()->back()->with('error', 'QR Code belum tersedia.');
@@ -106,20 +110,20 @@ class ProductionController extends Controller
     }
 
     // ─────────────────────────────────────────────
-    //  DELETE — tidak pakai Storage::disk('public')
+    //  DELETE
     // ─────────────────────────────────────────────
 
     public function destroy(Production $production)
     {
         if ($production->qr_code_path) {
-            $qrAbsolute = public_path('storage/' . $production->qr_code_path);
+            $qrAbsolute = $this->storagePath($production->qr_code_path);
             if (file_exists($qrAbsolute)) {
                 unlink($qrAbsolute);
             }
         }
 
         if ($production->final_label_path) {
-            $labelAbsolute = public_path('storage/' . $production->final_label_path);
+            $labelAbsolute = $this->storagePath($production->final_label_path);
             if (file_exists($labelAbsolute)) {
                 unlink($labelAbsolute);
             }

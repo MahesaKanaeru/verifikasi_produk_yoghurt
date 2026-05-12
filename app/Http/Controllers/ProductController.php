@@ -1,11 +1,15 @@
 <?php
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Product;
-
 class ProductController extends Controller
 {
+    // Path absolut ke storage domain (sesuaikan USERNAME cPanel Anda)
+    private function storagePath(string $relativePath = ''): string
+    {
+        $base = '/home/cery9751/public_html/vtaya-yoghurt-verify.my.id/storage';
+        return $relativePath ? $base . '/' . ltrim($relativePath, '/') : $base;
+    }
+
     public function index()
     {
         $products = Product::all();
@@ -26,17 +30,11 @@ class ProductController extends Controller
         $data['kode_produk'] = Product::generateKode();
 
         if ($request->hasFile('foto_produk')) {
-            $data['foto_produk'] = $this->simpanFile(
-                $request->file('foto_produk'),
-                'produk'
-            );
+            $data['foto_produk'] = $this->simpanFile($request->file('foto_produk'), 'produk');
         }
 
         if ($request->hasFile('foto_label')) {
-            $data['foto_label'] = $this->simpanFile(
-                $request->file('foto_label'),
-                'label'
-            );
+            $data['foto_label'] = $this->simpanFile($request->file('foto_label'), 'label');
         }
 
         Product::create($data);
@@ -58,23 +56,13 @@ class ProductController extends Controller
         $produk->estimasi_expired = $request->estimasi_expired;
 
         if ($request->hasFile('foto_produk')) {
-            // Hapus file lama jika ada
             $this->hapusFile($produk->foto_produk);
-
-            $produk->foto_produk = $this->simpanFile(
-                $request->file('foto_produk'),
-                'produk'
-            );
+            $produk->foto_produk = $this->simpanFile($request->file('foto_produk'), 'produk');
         }
 
         if ($request->hasFile('foto_label')) {
-            // Hapus file lama jika ada
             $this->hapusFile($produk->foto_label);
-
-            $produk->foto_label = $this->simpanFile(
-                $request->file('foto_label'),
-                'label'
-            );
+            $produk->foto_label = $this->simpanFile($request->file('foto_label'), 'label');
         }
 
         $produk->save();
@@ -87,50 +75,43 @@ class ProductController extends Controller
             return back()->with('error', 'Produk tidak dapat dihapus karena sudah digunakan di data produksi.');
         }
 
+        $this->hapusFile($produk->foto_produk);
+        $this->hapusFile($produk->foto_label);
+
         $produk->delete();
         return back()->with('success', 'Produk berhasil dihapus!');
     }
 
-    // ─────────────────────────────────────────────────────────
-    //  PRIVATE HELPERS — simpan & hapus file
-    // ─────────────────────────────────────────────────────────
+    // ────────────────────────────────────────────────────────
+    //  PRIVATE HELPERS
+    // ────────────────────────────────────────────────────────
 
-    /**
-     * Simpan file ke public/storage/{folder}/
-     * Return: "{folder}/{filename}"  → disimpan ke DB
-     */
     private function simpanFile(\Illuminate\Http\UploadedFile $file, string $folder): string
     {
-        // Bersihkan nama file: hapus spasi & karakter non-aman
         $original = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
         $ext      = $file->getClientOriginalExtension();
         $safe     = preg_replace('/[^\w\-]/u', '_', $original);
         $filename = time() . '_' . $safe . '.' . $ext;
 
-        // Pastikan folder ada
-        $destination = public_path('storage/' . $folder);
+        $destination = $this->storagePath($folder);
+
         if (!is_dir($destination)) {
             mkdir($destination, 0755, true);
         }
 
-        // Pindahkan file
         $file->move($destination, $filename);
 
-        // Return path untuk DB & asset()
+        // Return path DB: "produk/file.png" atau "label/file.png"
         return $folder . '/' . $filename;
     }
 
-    /**
-     * Hapus file lama dari public/storage/
-     * Menerima path DB seperti "produk/file.png"
-     */
     private function hapusFile(?string $dbPath): void
     {
         if (!$dbPath) return;
 
-        $absolutePath = public_path('storage/' . $dbPath);
-        if (file_exists($absolutePath)) {
-            unlink($absolutePath);
+        $absolute = $this->storagePath($dbPath);
+        if (file_exists($absolute)) {
+            unlink($absolute);
         }
     }
 }

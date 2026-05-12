@@ -8,9 +8,12 @@ use Intervention\Image\Drivers\Gd\Driver;
 
 class LabelService
 {
-    /**
-     * Pilih config label berdasarkan ukuran produk.
-     */
+    private function storagePath(string $relativePath = ''): string
+    {
+        $base = '/home/cery9751/public_html/vtaya-yoghurt-verify.my.id/storage';
+        return $relativePath ? $base . '/' . ltrim($relativePath, '/') : $base;
+    }
+
     private function getConfig(string $ukuran): array
     {
         $ukuran = strtolower($ukuran);
@@ -32,15 +35,13 @@ class LabelService
     ) {
         $manager = new ImageManager(new Driver());
 
-        // ── 1. Baca file dari public/storage/ (bukan Storage::disk) ──────────
         try {
-            $label = $manager->read(public_path('storage/' . $productLabelPath));
-            $qr    = $manager->read(public_path('storage/' . $qrCodePath));
+            $label = $manager->read($this->storagePath($productLabelPath));
+            $qr    = $manager->read($this->storagePath($qrCodePath));
         } catch (\Exception $e) {
             return null;
         }
 
-        // ── Kalkulasi dimensi (tidak berubah) ────────────────────────────────
         $cfg      = $this->getConfig($ukuran);
         $dpi      = 300;
         $cmToInch = 1 / 2.54;
@@ -62,8 +63,7 @@ class LabelService
         $prodText = 'PROD : ' . date('Ymd', strtotime($productionDate));
         $expText  = 'EXP : '  . date('Ymd', strtotime($expirationDate));
 
-        // ── 2. Path font dari public/storage/fonts/ (bukan storage_path) ─────
-        $fontPath = public_path('storage/fonts/Montserrat.ttf');
+        $fontPath = $this->storagePath('fonts/Montserrat.ttf');
 
         $label->text($prodText, $centerX, $prodY, function ($font) use ($fontSizePx, $fontPath) {
             $font->file($fontPath);
@@ -81,9 +81,8 @@ class LabelService
             $font->valign('top');
         });
 
-        // ── 3. Simpan ke public/storage/final_labels/ ────────────────────────
-        $filename  = $productionCode . '_label.png';
-        $folder    = public_path('storage/final_labels');
+        $filename = $productionCode . '_label.png';
+        $folder   = $this->storagePath('final_labels');
 
         if (!is_dir($folder)) {
             mkdir($folder, 0755, true);
@@ -91,7 +90,6 @@ class LabelService
 
         $label->save($folder . DIRECTORY_SEPARATOR . $filename, 100);
 
-        // Return path DB: "final_labels/xxx_label.png"
         return 'final_labels/' . $filename;
     }
 }
