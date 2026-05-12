@@ -29,7 +29,8 @@ class QrService
         $qrImage  = (new QRCode($options))->render($deepLink);
 
         $safeName = preg_replace('/[^\w\-]/u', '_', $plainCode);
-        $filename = $safeName . '.png';
+        $unique = time() . '_' . uniqid();
+        $filename = $safeName . '_' . $unique . '.png';
 
         $folder = $this->storagePath('qr_codes');
         if (!is_dir($folder)) {

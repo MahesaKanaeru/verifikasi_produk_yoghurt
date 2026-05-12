@@ -81,7 +81,8 @@ class LabelService
             $font->valign('top');
         });
 
-        $filename = $productionCode . '_label.png';
+        $unique = time() . '_' . uniqid();
+        $filename = $productionCode . '_' . $unique . '_label.png';
         $folder   = $this->storagePath('final_labels');
 
         if (!is_dir($folder)) {
