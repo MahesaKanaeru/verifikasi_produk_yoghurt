@@ -23,8 +23,24 @@
         background: #f7fdff;
         border: 1px solid #e0f7fc;
         border-radius: 12px;
-        padding: 16px 20px;
+        padding: 18px 20px;
         margin-bottom: 20px;
+    }
+    .filter-bar .form-select,
+    .filter-bar .form-control {
+        border-color: #c9eaf5;
+        font-size: .85rem;
+    }
+    .filter-bar .form-select:focus,
+    .filter-bar .form-control:focus {
+        border-color: #00a8cc;
+        box-shadow: 0 0 0 3px rgba(0,168,204,.1);
+    }
+    .filter-label {
+        font-size: .8rem;
+        font-weight: 600;
+        color: #555;
+        margin-bottom: 4px;
     }
     .code-badge {
         background: #e8eaf6;
@@ -40,55 +56,86 @@
 {{-- ─── Header ──────────────────────────────────────────────────── --}}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="fw-bold mb-0">Laporan Produksi</h2>
-
-    {{-- Tombol PDF — kirim filter aktif ke route pdf --}}
-    <a href="{{ route('laporan.pdf', array_filter(['dari' => request('dari'), 'sampai' => request('sampai')])) }}"
+    <a href="{{ route('laporan.pdf', array_filter(['dari' => request('dari') ?? $dari ?? '', 'sampai' => request('sampai') ?? $sampai ?? ''])) }}"
        target="_blank"
        class="btn btn-danger btn-sm">
         <i class="fas fa-file-pdf me-1"></i> Cetak / Ekspor PDF
     </a>
 </div>
 
-{{-- ─── Filter Tanggal ─────────────────────────────────────────── --}}
+{{-- ─── Filter ──────────────────────────────────────────────────── --}}
 <div class="filter-bar">
-    <form method="GET" action="{{ route('laporan.index') }}" class="row g-3 align-items-end">
-        <div class="col-sm-4">
-            <label class="form-label fw-semibold mb-1" style="font-size:.85rem;">Dari Tanggal</label>
-            <input type="date" name="dari" id="input-dari"
-                   class="form-control form-control-sm"
-                   value="{{ $dari ?? '' }}"
-                   onchange="toggleSampai(this)">
+    <form method="GET" action="{{ route('laporan.index') }}" id="formFilter">
+
+        <div class="row g-3 align-items-end">
+
+            {{-- Pilih Tahun --}}
+            <div class="col-auto">
+                <div class="filter-label">
+                    <i class="fas fa-calendar-alt me-1 text-info"></i> Tahun
+                </div>
+                <select id="pilihTahun" class="form-select form-select-sm"
+                        style="min-width:115px;"
+                        onchange="tampilkanFilter(this.value)">
+                    <option value="">-- Tahun --</option>
+                    @for($y = now()->year; $y >= now()->year - 5; $y--)
+                        <option value="{{ $y }}"
+                            {{ (isset($dari) && \Carbon\Carbon::parse($dari)->year == $y) ? 'selected' : '' }}>
+                            {{ $y }}
+                        </option>
+                    @endfor
+                </select>
+            </div>
+
+            {{-- Dari & Sampai — muncul setelah pilih tahun --}}
+            <div class="col" id="wrapperTanggal" style="{{ isset($dari) ? '' : 'display:none;' }}">
+                <div class="row g-2 align-items-end">
+
+                    <div class="col-sm-4">
+                        <div class="filter-label">Dari Tanggal</div>
+                        <input type="date" name="dari" id="input-dari"
+                               class="form-control form-control-sm"
+                               value="{{ $dari ?? '' }}"
+                               onchange="aturSampai(this)">
+                    </div>
+
+                    <div class="col-sm-4">
+                        <div class="filter-label">
+                            Sampai Tanggal
+                            <span class="text-muted fw-normal" style="font-size:.72rem;">(opsional)</span>
+                        </div>
+                        <input type="date" name="sampai" id="input-sampai"
+                               class="form-control form-control-sm"
+                               value="{{ isset($sampai) && $sampai !== $dari ? $sampai : '' }}"
+                               {{ empty($dari) ? 'disabled' : '' }}>
+                    </div>
+
+                    <div class="col-sm-4 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-sm w-100">
+                            <i class="fas fa-filter me-1"></i> Tampilkan
+                        </button>
+                        <a href="{{ route('laporan.index') }}"
+                           class="btn btn-outline-secondary btn-sm"
+                           title="Reset filter">
+                            <i class="fas fa-times"></i>
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+
         </div>
-        <div class="col-sm-4">
-            <label class="form-label fw-semibold mb-1" style="font-size:.85rem;">Sampai Tanggal</label>
-            <input type="date" name="sampai" id="input-sampai"
-                   class="form-control form-control-sm"
-                   value="{{ isset($sampai) && $sampai !== $dari ? $sampai : '' }}"
-                   {{ empty($dari) ? 'disabled' : '' }}>
+
+        {{-- Hint sebelum pilih tahun --}}
+        <div id="hintTahun" class="mt-2" style="{{ isset($dari) ? 'display:none;' : '' }}">
+            <small class="text-muted">
+                <i class="fas fa-info-circle me-1"></i>
+                Pilih tahun terlebih dahulu untuk menampilkan filter tanggal.
+            </small>
         </div>
-        <div class="col-sm-4 d-flex gap-2">
-            <button type="submit" class="btn btn-primary btn-sm w-100">
-                <i class="fas fa-filter me-1"></i> Tampilkan
-            </button>
-            <a href="{{ route('laporan.index') }}" class="btn btn-outline-secondary btn-sm">
-                <i class="fas fa-times"></i>
-            </a>
-        </div>
+
     </form>
 </div>
-
-<script>
-function toggleSampai(inputDari) {
-    const sampai = document.getElementById('input-sampai');
-    if (inputDari.value) {
-        sampai.disabled = false;
-        sampai.min = inputDari.value; // sampai tidak boleh sebelum dari
-    } else {
-        sampai.disabled = true;
-        sampai.value = '';
-    }
-}
-</script>
 
 {{-- ─── Report Card ─────────────────────────────────────────────── --}}
 <div class="report-card">
@@ -97,8 +144,7 @@ function toggleSampai(inputDari) {
             <h5 class="fw-bold mb-0" style="font-size:.95rem;">
                 <i class="fas fa-chart-bar me-2 text-info"></i>
                 Rekap Produksi
-                @if(request('dari') || request('sampai'))
-                    <span class="text-muted fw-normal" style="font-size:.82rem;">
+                <span class="text-muted fw-normal" style="font-size:.82rem;">
                     @if($dari === $sampai)
                         ({{ \Carbon\Carbon::parse($dari)->translatedFormat('d F Y') }})
                     @else
@@ -107,20 +153,18 @@ function toggleSampai(inputDari) {
                         {{ \Carbon\Carbon::parse($sampai)->translatedFormat('d F Y') }})
                     @endif
                 </span>
-                @else
-                    <span class="text-muted fw-normal" style="font-size:.82rem;">(Semua Data)</span>
-                @endif
             </h5>
         </div>
         <div class="text-muted" style="font-size:.82rem;">
-    @if($dari === $sampai)
-        Tanggal : {{ \Carbon\Carbon::parse($dari)->translatedFormat('d F Y') }}
-    @else
-        Periode : {{ \Carbon\Carbon::parse($dari)->translatedFormat('d F Y') }}
-        &mdash;
-        {{ \Carbon\Carbon::parse($sampai)->translatedFormat('d F Y') }}
-    @endif
-</div>
+            @if($dari === $sampai)
+                Tanggal : {{ \Carbon\Carbon::parse($dari)->translatedFormat('d F Y') }}
+            @else
+                Periode :
+                {{ \Carbon\Carbon::parse($dari)->translatedFormat('d F Y') }}
+                &mdash;
+                {{ \Carbon\Carbon::parse($sampai)->translatedFormat('d F Y') }}
+            @endif
+        </div>
     </div>
 
     <div class="p-4">
@@ -158,7 +202,8 @@ function toggleSampai(inputDari) {
                             <td class="text-muted text-center">{{ $rowNo++ }}</td>
 
                             @if($loopIdx === 0)
-                            <td rowspan="{{ $prodCount }}" class="fw-semibold text-center align-middle"
+                            <td rowspan="{{ $prodCount }}"
+                                class="fw-semibold text-center align-middle"
                                 style="background:#f7fdff; color:#0277bd;">
                                 {{ \Carbon\Carbon::parse($date)->format('d M Y') }}
                                 <div class="text-muted fw-normal" style="font-size:.75rem;">
@@ -201,5 +246,67 @@ function toggleSampai(inputDari) {
         @endif
     </div>
 </div>
+
+{{-- ─── Script Filter ───────────────────────────────────────────── --}}
+<script>
+function tampilkanFilter(tahun) {
+    const wrapper     = document.getElementById('wrapperTanggal');
+    const hint        = document.getElementById('hintTahun');
+    const inputDari   = document.getElementById('input-dari');
+    const inputSampai = document.getElementById('input-sampai');
+
+    if (!tahun) {
+        wrapper.style.display = 'none';
+        hint.style.display    = '';
+        return;
+    }
+
+    // Batasi range sesuai tahun
+    inputDari.min   = tahun + '-01-01';
+    inputDari.max   = tahun + '-12-31';
+    inputSampai.max = tahun + '-12-31';
+
+    // Reset nilai saat ganti tahun
+    inputDari.value      = '';
+    inputSampai.value    = '';
+    inputSampai.disabled = true;
+
+    wrapper.style.display = '';
+    hint.style.display    = 'none';
+}
+
+function aturSampai(inputDari) {
+    const sampai = document.getElementById('input-sampai');
+    const tahun  = document.getElementById('pilihTahun').value;
+
+    if (inputDari.value) {
+        sampai.disabled = false;
+        sampai.min      = inputDari.value;
+        sampai.max      = tahun + '-12-31';
+        // Reset sampai jika nilainya lebih kecil dari dari
+        if (sampai.value && sampai.value < inputDari.value) {
+            sampai.value = '';
+        }
+    } else {
+        sampai.disabled = true;
+        sampai.value    = '';
+    }
+}
+
+// Inisialisasi saat load halaman (jika ada filter aktif)
+document.addEventListener('DOMContentLoaded', () => {
+    const dari   = document.getElementById('input-dari');
+    const sampai = document.getElementById('input-sampai');
+    const tahun  = document.getElementById('pilihTahun');
+
+    if (tahun.value && dari.value) {
+        sampai.disabled = false;
+        sampai.min      = dari.value;
+        sampai.max      = tahun.value + '-12-31';
+        dari.min        = tahun.value + '-01-01';
+        dari.max        = tahun.value + '-12-31';
+    }
+});
+</script>
 
 @endsection

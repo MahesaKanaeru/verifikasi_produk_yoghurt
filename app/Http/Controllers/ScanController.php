@@ -17,24 +17,12 @@ class ScanController extends Controller
     }
 
     /**
-     * Verifikasi QR Code — pendekatan dosen.
+     * Verifikasi QR Code.
      *
-     * Perubahan dari pendekatan lama:
-     *
-     * LAMA:
-     *   1. Decrypt cipher → dapat "VY00001-20250607"
-     *   2. Split by "-" → [production_code, expiration_date]
-     *   3. Cari di DB by plain production_code
-     *   4. Bandingkan expiration_date dari QR vs DB
-     *
-     * BARU (pendekatan dosen):
-     *   1. Ambil cipher dari ?scan= (tidak perlu decrypt dulu)
-     *   2. Cari langsung di DB: WHERE production_code = cipher
-     *      (bisa karena ECB deterministik → cipher sama = bisa exact match)
-     *   3. Jika ketemu → decrypt expiration_date dari DB
-     *   4. Tampilkan info produk + status kedaluwarsa
-     *   5. Tidak perlu cek integritas manual karena jika cipher tidak ada di DB
-     *      → otomatis QR palsu (tidak bisa dibuat tanpa kunci AES)
+     * Skenario:
+     *   1. QR asli & produk AMAN     → success: true, status: AMAN
+     *   2. QR asli & produk KEDALUWARSA → success: true, status: KEDALUWARSA
+     *   3. QR palsu / random / tidak dikenali → success: false, integrity: NOT_FOUND
      */
     public function verifyQr(Request $request)
     {
@@ -45,8 +33,8 @@ class ScanController extends Controller
         try {
             $raw = trim($request->qr_data);
 
-            // Ekstrak cipher dari URL jika format QR adalah URL penuh
-            // Contoh: https://domain.com/?scan=A1b2C3d4%3D%3D
+            // Ekstrak nilai ?scan= jika QR berisi URL penuh
+            // Contoh: https://domain.com/?scan=1a2b3c4d...
             if (filter_var($raw, FILTER_VALIDATE_URL)) {
                 $query = parse_url($raw, PHP_URL_QUERY) ?? '';
                 parse_str($query, $params);
@@ -56,24 +44,24 @@ class ScanController extends Controller
                 }
             }
 
-            // Tidak perlu decrypt — langsung cari cipher di DB
-            // ECB deterministik: cipher(VY00001) selalu sama → exact match bisa dilakukan
+            // Cari production_code (hex) langsung di DB
+            // QR random / palsu / bukan buatan aplikasi ini → otomatis tidak ketemu
             $production = Production::with('product')
                 ->where('production_code', $raw)
                 ->first();
 
-            // Jika tidak ditemukan → QR palsu atau dimanipulasi
+            // Tidak ditemukan → QR bukan dari aplikasi ini
             if (!$production) {
                 return response()->json([
                     'success'   => false,
-                    'message'   => 'QR Code tidak dikenali. Produk mungkin tidak terdaftar atau QR telah dipalsukan.',
+                    'message'   => 'Data produk tidak ditemukan. QR Code ini tidak terdaftar dalam sistem kami — produk kemungkinan tidak asli atau informasi telah dimanipulasi. Harap waspada dan jangan konsumsi produk ini sebelum memastikan keasliannya.',
                     'integrity' => 'NOT_FOUND',
                 ], 404);
             }
 
-            // Dekripsi expiration_date dari DB (isinya cipher dari format Ymd)
+            // Dekripsi expiration_date (hex) dari DB → plaintext format "Ymd"
             $aes         = new AesService();
-            $plainExpiry = $aes->decrypt($production->expiration_date); // → "20250607"
+            $plainExpiry = $aes->decrypt($production->expiration_date);
 
             if (!$plainExpiry || strlen($plainExpiry) !== 8) {
                 return response()->json([
@@ -90,7 +78,6 @@ class ScanController extends Controller
                 'success'   => true,
                 'integrity' => 'VALID',
                 'data'      => [
-                    // Tampilkan production_number (plain) bukan production_code (cipher)
                     'production_code' => $production->production_number,
                     'product_name'    => $production->product?->nama_produk ?? 'N/A',
                     'product_size'    => $production->product?->ukuran ?? 'N/A',

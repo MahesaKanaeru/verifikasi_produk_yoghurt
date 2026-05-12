@@ -27,11 +27,12 @@ class Production extends Model
     {
         $latest = self::orderBy('id', 'desc')->value('production_number');
 
-        if (!$latest) {
+        if (! $latest) {
             return 'VY00001';
         }
 
         $number = (int) substr($latest, 2);
-        return 'VY' . str_pad($number + 1, 5, '0', STR_PAD_LEFT);
+
+        return 'VY'.str_pad($number + 1, 5, '0', STR_PAD_LEFT);
     }
 }

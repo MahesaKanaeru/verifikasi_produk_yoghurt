@@ -50,10 +50,10 @@
         <div class="d-flex justify-content-between align-items-center mb-3">
             <div class="d-flex align-items-center gap-2">
                 {{-- Ganti dengan <img src="..." height="30"> kalau sudah ada logo asli --}}
-                <div class="bg-white bg-opacity-25 rounded px-2 py-1 small fw-bold">FKOM</div>
+                <img src="{{ asset('storage/images/vtaya_logo_tr.png') }}" alt="VTAYA" height="44" style="object-fit: contain;">
             </div>
             <div class="d-flex align-items-center gap-2">
-                <div class="bg-white bg-opacity-25 rounded px-2 py-1 small fw-bold">VTAYA</div>
+                <img src="{{ asset('storage/images/logo_uniku.png') }}" alt="VTAYA" height="44" style="object-fit: contain;">
             </div>
         </div>
 

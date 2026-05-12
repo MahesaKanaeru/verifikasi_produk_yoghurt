@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+
 class Product extends Model
 {
     use HasFactory;
@@ -16,11 +17,19 @@ class Product extends Model
         'foto_produk',
         'foto_label',
     ];
-public static function generateKode()
-{
-    $last = self::orderBy('id', 'desc')->first();
-    if (!$last) return 'PRD001';
-    $number = str_replace('PRD', '', $last->kode_produk);
-    return 'PRD' . sprintf('%03d', (int)$number + 1);
-}
+
+    // ── Relasi ke Productions ──────────────────────────
+    public function productions()
+    {
+        return $this->hasMany(Production::class, 'product_id');
+    }
+
+    // ── Generate Kode ──────────────────────────────────
+    public static function generateKode()
+    {
+        $last = self::orderBy('id', 'desc')->first();
+        if (!$last) return 'PRD001';
+        $number = str_replace('PRD', '', $last->kode_produk);
+        return 'PRD' . sprintf('%03d', (int)$number + 1);
+    }
 }

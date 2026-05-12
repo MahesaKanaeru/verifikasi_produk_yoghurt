@@ -56,8 +56,13 @@ class ProductController extends Controller {
         $produk->save();
         return back()->with('success', 'Produk berhasil diperbarui!');
     }
-    public function destroy(Product $produk) {
-        $produk->delete();
-        return back()->with('success', 'Produk berhasil dihapus!');
+    public function destroy(Product $produk)
+    {
+    if ($produk->productions()->exists()) {
+        return back()->with('error', 'Produk tidak dapat dihapus karena sudah digunakan di data produksi.');
+    }
+
+    $produk->delete();
+    return back()->with('success', 'Produk berhasil dihapus!');
     }
 }

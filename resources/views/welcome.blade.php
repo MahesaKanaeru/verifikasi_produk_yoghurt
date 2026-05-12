@@ -111,7 +111,7 @@
 {{-- NAVBAR --}}
 <nav class="navbar navbar-expand-lg sticky-top">
     <div class="container">
-        <a class="navbar-brand" href="#">VTAYA</a>
+        <img src="{{ asset('storage/images/vtaya_logo_tr.png') }}" alt="VTAYA" height="64" style="object-fit: contain;">
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
             <span class="navbar-toggler-icon"></span>
         </button>

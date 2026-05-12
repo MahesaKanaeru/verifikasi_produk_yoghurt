@@ -1,6 +1,6 @@
 <nav id="sidebar">
     <div class="sidebar-header text-center">
-        <img src="{{ asset('storage/images/vtaya_logo.png') }}" alt="VTAYA" height="64" style="object-fit: contain;">
+        <img src="{{ asset('storage/images/vtaya_logo_tr.png') }}" alt="VTAYA" height="64" style="object-fit: contain;">
         <small class="d-block opacity-75 mt-1">Vtaya Yoghurt</small>
         <small class="d-block opacity-75 mt-1">Kelola Produk dan produksi</small>
     </div>
