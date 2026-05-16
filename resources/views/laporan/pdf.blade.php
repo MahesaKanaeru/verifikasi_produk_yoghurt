@@ -215,7 +215,7 @@
             @foreach($productions as $idx => $prod)
             <tr>
                 <td class="no">{{ $idx + 1 }}</td>
-                <td class="mono">{{ $prod->production_number }}</td>
+                <td class="mono">{{ $prod->production_code }}</td>
                 <td>{{ $prod->product->nama_produk ?? 'N/A' }}</td>
                 <td class="center">{{ $prod->product->ukuran ?? '-' }}</td>
                 <td class="center">

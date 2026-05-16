@@ -3,15 +3,32 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Product;
+use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
     // Path absolut ke storage domain (sesuaikan USERNAME cPanel Anda)
+    // old
+    // private function storagePath(string $relativePath = ''): string
+    // {
+    //     $base = '/home/cery9751/public_html/vtaya-yoghurt-verify.my.id/storage';
+    //     return $relativePath ? $base . '/' . ltrim($relativePath, '/') : $base;
+    // }
     private function storagePath(string $relativePath = ''): string
     {
+        // ================= STORAGE LOKAL =================
+        // Untuk development di laptop / WAMP
+        // $base = 'D:/Skripsi/Projek/vtayaapp/storage/app/public';
+
+        // ================= STORAGE HOSTING =================
+        // Untuk production di Rumahweb hosting
         $base = '/home/cery9751/public_html/vtaya-yoghurt-verify.my.id/storage';
-        return $relativePath ? $base . '/' . ltrim($relativePath, '/') : $base;
+
+        return $relativePath
+            ? $base . '/' . ltrim($relativePath, '/')
+            : $base;
     }
+
 
     public function index()
     {
@@ -88,31 +105,65 @@ class ProductController extends Controller
     // ────────────────────────────────────────────────────────
     //  PRIVATE HELPERS
     // ────────────────────────────────────────────────────────
+    // ========== SimpanFile FIX untuk Hosting tanpa akses Storage facade =====================
+    // private function simpanFile(\Illuminate\Http\UploadedFile $file, string $folder): string
+    // {
+    //     $original = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+    //     $ext      = $file->getClientOriginalExtension();
+    //     $safe     = preg_replace('/[^\w\-]/u', '_', $original);
+    //     $filename = time() . '_' . $safe . '.' . $ext;
 
+    //     $destination = $this->storagePath($folder);
+
+    //     if (!is_dir($destination)) {
+    //         mkdir($destination, 0755, true);
+    //     }
+
+    //     $file->move($destination, $filename);
+
+    //     // Return path DB: "produk/file.png" atau "label/file.png"
+    //     return $folder . '/' . $filename;
+    // }
+
+    // ================== SimpanFIle FIX untuk Lokal ============================
     private function simpanFile(\Illuminate\Http\UploadedFile $file, string $folder): string
     {
         $original = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
         $ext      = $file->getClientOriginalExtension();
         $safe     = preg_replace('/[^\w\-]/u', '_', $original);
+
         $filename = time() . '_' . $safe . '.' . $ext;
 
         $destination = $this->storagePath($folder);
 
+        // Buat folder otomatis jika belum ada
         if (!is_dir($destination)) {
             mkdir($destination, 0755, true);
         }
 
+        // Upload file ke folder tujuan
         $file->move($destination, $filename);
 
-        // Return path DB: "produk/file.png" atau "label/file.png"
+        // Simpan path ke database
         return $folder . '/' . $filename;
     }
+    // ================== HapusFile FIX untuk Hosting  ============================
+    // private function hapusFile(?string $dbPath): void
+    // {
+    //     if (!$dbPath) return;
 
+    //     $absolute = $this->storagePath($dbPath);
+    //     if (file_exists($absolute)) {
+    //         unlink($absolute);
+    //     }
+    // }
+    // ================== HapusFile FIX untuk Lokal  ============================
     private function hapusFile(?string $dbPath): void
     {
         if (!$dbPath) return;
 
         $absolute = $this->storagePath($dbPath);
+
         if (file_exists($absolute)) {
             unlink($absolute);
         }

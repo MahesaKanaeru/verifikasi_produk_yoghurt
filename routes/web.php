@@ -43,6 +43,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('produk', ProductController::class);
 
     Route::resource('production', ProductionController::class);
+    Route::post('/production/bulk-store', [ProductionController::class, 'bulkStore'])->name('production.bulk-store');
     Route::get('production/{production}/download-qr',    [ProductionController::class, 'downloadQr'])->name('production.download-qr');
     Route::get('production/{production}/download-label', [ProductionController::class, 'downloadLabel'])->name('production.download-label');
 

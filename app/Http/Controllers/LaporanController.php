@@ -34,10 +34,16 @@ class LaporanController extends Controller
     {
         return $query->get()->map(function ($prod) use ($aes) {
             try {
+                // Decrypt expiration date
                 $plain = $aes->decrypt($prod->expiration_date);
                 $prod->plain_expiry = Carbon::createFromFormat('Ymd', $plain)->format('d M Y');
+
+                // ← Tambah ini: decrypt production_code juga
+                $prod->production_code = $aes->decrypt($prod->production_code);
+
             } catch (\Exception $e) {
-                $prod->plain_expiry = '-';
+                $prod->plain_expiry    = '-';
+                $prod->production_code = '-'; // fallback kalau decrypt gagal
             }
             return $prod;
         });
@@ -45,32 +51,35 @@ class LaporanController extends Controller
 
     // ── Halaman Laporan (web) ─────────────────────────────────────────
   public function index(Request $request, AesService $aes)
-{
-    $query = Production::with('product')->whereHas('product')->latest();
+    {
+        $query = Production::with('product')->whereHas('product')->latest();
 
-    // Default: hari ini
-    $dari   = $request->filled('dari') ? $request->dari : now('Asia/Jakarta')->toDateString();
+        $dari   = $request->filled('dari') ? $request->dari : now('Asia/Jakarta')->toDateString();
+        $sampai = $request->filled('sampai') ? $request->sampai : $dari;
 
-    // Jika sampai tidak diisi, samakan dengan dari (hanya 1 hari)
-    $sampai = $request->filled('sampai') ? $request->sampai : $dari;
+        $query->whereBetween('production_date', [$dari, $sampai]);
 
-    $query->whereBetween('production_date', [$dari, $sampai]);
+        $productions = $query->get()->map(function ($prod) use ($aes) {
+            try {
+                // Decrypt expiration date
+                $plain = $aes->decrypt($prod->expiration_date);
+                $prod->plain_expiry = Carbon::createFromFormat('Ymd', $plain)->format('d M Y');
 
-    $productions = $query->get()->map(function ($prod) use ($aes) {
-        try {
-            $plain = $aes->decrypt($prod->expiration_date);
-            $prod->plain_expiry = Carbon::createFromFormat('Ymd', $plain)->format('d M Y');
-        } catch (\Exception $e) {
-            $prod->plain_expiry = '-';
-        }
-        return $prod;
-    });
+                // ← Tambah ini
+                $prod->production_code = $aes->decrypt($prod->production_code);
 
-    $grouped  = $productions->groupBy(fn($p) => Carbon::parse($p->production_date)->format('Y-m-d'));
-    $totalQty = $productions->sum('qty');
+            } catch (\Exception $e) {
+                $prod->plain_expiry    = '-';
+                $prod->production_code = '-';
+            }
+            return $prod;
+        });
 
-    return view('laporan.index', compact('grouped', 'totalQty', 'productions', 'dari', 'sampai'));
-}
+        $grouped  = $productions->groupBy(fn($p) => Carbon::parse($p->production_date)->format('Y-m-d'));
+        $totalQty = $productions->sum('qty');
+
+        return view('laporan.index', compact('grouped', 'totalQty', 'productions', 'dari', 'sampai'));
+    }
     // ── Export PDF ────────────────────────────────────────────────────
     public function pdf(Request $request, AesService $aes)
     {

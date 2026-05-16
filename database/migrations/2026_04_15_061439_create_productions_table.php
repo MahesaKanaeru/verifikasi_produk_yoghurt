@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('productions', function (Blueprint $table) {
             $table->id();
-            $table->string('production_number')->unique();   // plain: VY00001 (display & urutan)
+            // $table->string('production_num-ber')->unique();   // hapus
             $table->string('production_code', 500);         // cipher dari production_number
             $table->foreignId('product_id')->constrained()->onDelete('cascade');
             $table->unsignedInteger('qty')->default(0);     // jumlah pcs / botol

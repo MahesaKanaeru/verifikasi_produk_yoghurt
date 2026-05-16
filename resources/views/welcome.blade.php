@@ -312,9 +312,29 @@
                         <p class="label">Status Produk</p>
                         <div id="resultStatus"></div>
                     </div>
-                    <div class="col-12">
-                        <p class="label">Isi QR (Enkripsi)</p>
-                        <p class="qr-raw" id="resultRawQR"></p>
+                    <div class="col-12 mt-2">
+                        <a href="javascript:void(0)" id="btnToggleEnkripsi" 
+                        class="text-secondary text-decoration-none small" 
+                        onclick="toggleEnkripsi()">
+                            <i class="fas fa-eye me-1" id="iconToggle"></i>
+                            <span id="labelToggle">Show result enkripsi</span>
+                        </a>
+                    </div>
+                    <div id="enkripsiBlock" style="display:none;">
+                        <hr class="my-2">
+                        <p class="text-muted text-center mb-2" style="font-size:0.72rem; letter-spacing:.5px;">
+                            <i class="fas fa-lock me-1"></i> Informasi Kriptografi AES 
+                        </p>
+
+                        <div class="col-12 mb-2">
+                            <p class="label">Enkripsi Kode Produksi</p>
+                            <p class="qr-raw" id="resultCodeEncrypted"></p>
+                        </div>
+
+                        <div class="col-12">
+                            <p class="label">Enkripsi Tanggal Kedaluwarsa</p>
+                            <p class="qr-raw" id="resultExpiryEncrypted"></p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -352,36 +372,19 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.4/html5-qrcode.min.js"></script>
 
 <script>
-    let scanner    = null;
-    let rawQRData  = '';
+    let scanner = null;
 
-    /* ================================================================
-       AUTO-VERIFY — Cek ?scan= saat halaman dimuat
-       Dipanggil saat konsumen klik link dari QR (deep link flow):
-         /v/ENCRYPTED → redirect → /?scan=ENCRYPTED → halaman ini
-    ================================================================ */
+    /* AUTO-VERIFY — dari deep link ?scan= */
     document.addEventListener('DOMContentLoaded', () => {
-        const params    = new URLSearchParams(window.location.search);
-        const scanParam = params.get('scan');
-
+        const scanParam = new URLSearchParams(window.location.search).get('scan');
         if (scanParam) {
-            // Tampilkan spinner sebentar agar terasa responsif
             document.getElementById('verifyingOverlay').style.display = 'flex';
-
-            // Bersihkan URL dari query string (biar URL bar rapi)
             history.replaceState({}, '', window.location.pathname);
-
-            // Tunggu Bootstrap siap, lalu verifikasi
-            setTimeout(() => {
-                rawQRData = scanParam;
-                verifyQRCode(scanParam);
-            }, 600);
+            setTimeout(() => verifyQRCode(scanParam), 600);
         }
     });
 
-    /* ================================================================
-       SCANNER KAMERA (scan dari halaman web)
-    ================================================================ */
+    /* SCANNER KAMERA */
     function startScan() {
         new bootstrap.Modal(document.getElementById('scannerModal')).show();
         scanner = new Html5QrcodeScanner(
@@ -397,20 +400,12 @@
     }
 
     function onScanSuccess(decodedText) {
-        rawQRData = decodedText;
         stopScanner();
         bootstrap.Modal.getInstance(document.getElementById('scannerModal')).hide();
         verifyQRCode(decodedText);
     }
 
-    /* ================================================================
-       VERIFY — Kirim ke API
-       Menerima:
-         - enkripsi mentah (QR lama)
-         - deep link penuh (QR baru discan dari kamera web)
-         - query param ?scan= (deep link flow)
-       Semua ditangani di ScanController::verifyQr()
-    ================================================================ */
+    /* VERIFY — kirim ke API */
     function verifyQRCode(qrData) {
         fetch('/api/verify-qr', {
             method:  'POST',
@@ -431,45 +426,39 @@
         });
     }
 
-    /* ================================================================
-       HELPER — Badge status kedaluwarsa
-    ================================================================ */
+    /* BADGE status kedaluwarsa */
     function statusBadge(expStr) {
-    // Support format: "25 Apr 2025" atau "25 Mei 2025" (Indonesia)
-    const monthMap = {
-        'Jan':0,'Feb':1,'Mar':2,'Apr':3,
-        'Mei':4,'May':4,           // ← handle dua-duanya
-        'Jun':5,'Jul':6,
-        'Agu':7,'Aug':7,           // ← handle dua-duanya
-        'Sep':8,'Okt':9,'Oct':9,   // ← handle dua-duanya
-        'Nov':10,'Des':11,'Dec':11 // ← handle dua-duanya
-    };
+        const monthMap = {
+            'Jan':0,'Feb':1,'Mar':2,'Apr':3,
+            'Mei':4,'May':4,
+            'Jun':5,'Jul':6,
+            'Agu':7,'Aug':7,
+            'Sep':8,'Okt':9,'Oct':9,
+            'Nov':10,'Des':11,'Dec':11
+        };
 
-    const parts = expStr.trim().split(' ');
-    const day   = parseInt(parts[0]);
-    const month = monthMap[parts[1]];
-    const year  = parseInt(parts[2]);
+        const parts = expStr.trim().split(' ');
+        const day   = parseInt(parts[0]);
+        const month = monthMap[parts[1]];
+        const year  = parseInt(parts[2]);
 
-    // Jika parse gagal, jangan tampilkan badge salah
-    if (isNaN(day) || month === undefined || isNaN(year)) {
-        return `<span class="badge bg-secondary">Format tanggal tidak valid</span>`;
+        if (isNaN(day) || month === undefined || isNaN(year)) {
+            return `<span class="badge bg-secondary">Format tanggal tidak valid</span>`;
+        }
+
+        const exp   = new Date(year, month, day);
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        exp.setHours(0,0,0,0);
+
+        const diff = Math.ceil((exp - today) / 86400000);
+
+        if (diff < 0)  return `<span class="badge bg-danger">Kedaluwarsa ${Math.abs(diff)} hari lalu</span>`;
+        if (diff <= 7) return `<span class="badge bg-warning text-dark">Sisa ${diff} hari lagi</span>`;
+        return `<span class="badge bg-success">Baik &bull; sisa ${diff} hari</span>`;
     }
 
-    const exp   = new Date(year, month, day);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    exp.setHours(0, 0, 0, 0);
-
-    const diff = Math.ceil((exp - today) / 86400000);
-
-    if (diff < 0)  return `<span class="badge bg-danger">Kedaluwarsa ${Math.abs(diff)} hari lalu</span>`;
-    if (diff <= 7) return `<span class="badge bg-warning text-dark">Sisa ${diff} hari lagi</span>`;
-    return `<span class="badge bg-success">Baik &bull; sisa ${diff} hari</span>`;
-}
-
-    /* ================================================================
-       MODAL — Tampilkan hasil
-    ================================================================ */
+    /* MODAL — hasil verifikasi */
     function showResult(d) {
         document.getElementById('resultImage').src            = d.product_image;
         document.getElementById('resultCode').textContent     = d.production_code;
@@ -478,25 +467,66 @@
         document.getElementById('resultProdDate').textContent = d.production_date;
         document.getElementById('resultExpDate').textContent  = d.expiration_date;
         document.getElementById('resultStatus').innerHTML     = statusBadge(d.expiration_date);
-        document.getElementById('resultRawQR').textContent    = rawQRData;
+        document.getElementById('resultCodeEncrypted').textContent   = d.production_code_encrypted;
+        document.getElementById('resultExpiryEncrypted').textContent = d.expiry_encrypted;
+
+        // Reset toggle tiap buka modal
+        document.getElementById('enkripsiBlock').style.display = 'none';
+        document.getElementById('iconToggle').className        = 'fas fa-eye me-1';
+        document.getElementById('labelToggle').textContent     = 'Tampilkan Data Enkripsi';
+
         new bootstrap.Modal(document.getElementById('resultModal')).show();
     }
 
+    /* TOGGLE enkripsi */
+    function toggleEnkripsi() {
+        const block = document.getElementById('enkripsiBlock');
+        const shown = block.style.display !== 'none';
+
+        block.style.display = shown ? 'none' : 'block';
+        document.getElementById('iconToggle').className = `fas ${shown ? 'fa-eye' : 'fa-eye-slash'} me-1`;
+        
+        // Cukup ubah teks di bagian ini saja
+        document.getElementById('labelToggle').textContent = shown
+            ? 'Show result enkripsi'
+            : 'Hide result enkripsi';
+    }
+    /* MODAL — error */
     function showError(message, integrity) {
         const cfg = {
-            MANIPULATED: { cls: 'bg-warning',          icon: 'fa-exclamation-triangle', title: 'Indikasi Manipulasi',    close: 'btn-close' },
-            NOT_FOUND:   { cls: 'bg-danger text-white', icon: 'fa-times-circle',         title: 'Produk Tidak Ditemukan', close: 'btn-close btn-close-white' },
+            NOT_FOUND: {
+                cls:   'bg-danger text-white',
+                icon:  'fa-times-circle',
+                title: 'Produk Tidak Ditemukan',
+                closeWhite: true,
+            },
+            MANIPULATED: {
+                cls:   'bg-warning',
+                icon:  'fa-exclamation-triangle',
+                title: 'Indikasi Manipulasi',
+                closeWhite: false,
+            },
+            DECRYPT_ERROR: {
+                cls:   'bg-warning',
+                icon:  'fa-exclamation-circle',
+                title: 'Data Tidak Dapat Dibaca',
+                closeWhite: false,
+            },
         };
+
         const c = cfg[integrity] ?? {
-            cls: 'bg-danger text-white', icon: 'fa-times-circle',
-            title: 'Verifikasi Gagal',   close: 'btn-close btn-close-white',
+            cls:   'bg-secondary text-white',
+            icon:  'fa-times-circle',
+            title: 'Verifikasi Gagal',
+            closeWhite: true,
         };
 
         document.getElementById('errorHeader').className    = `modal-header py-3 ${c.cls}`;
-        document.getElementById('errorIcon').className      = `fas ${c.icon}`;
+        document.getElementById('errorIcon').className      = `fas ${c.icon} me-2`;
         document.getElementById('errorTitle').textContent   = c.title;
-        document.getElementById('errorBtnClose').className  = c.close;
+        document.getElementById('errorBtnClose').className  = `btn-close${c.closeWhite ? ' btn-close-white' : ''}`;
         document.getElementById('errorMessage').textContent = message;
+
         new bootstrap.Modal(document.getElementById('errorModal')).show();
     }
 </script>

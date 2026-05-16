@@ -24,6 +24,7 @@ class DashboardController extends Controller
             $plain = $aes->decrypt($prod->expiration_date);      // → "20250607"
             $prod->plain_expiry_carbon = Carbon::createFromFormat('Ymd', $plain);
             $prod->plain_expiry        = $prod->plain_expiry_carbon->format('d M Y');
+            $prod->production_code = $aes->decrypt($prod->production_code);
             return $prod;
         });
 

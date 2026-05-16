@@ -182,7 +182,7 @@
                     <tr>
                         <th style="width:44px;">No</th>
                         <th>Tanggal Produksi</th>
-                        <th>Kode Produksi</th>
+                        <th>No. Produksi</th> 
                         <th>Nama Produk</th>
                         <th class="text-end">Qty (pcs)</th>
                         <th class="text-end">Subtotal Hari (pcs)</th>
@@ -212,7 +212,7 @@
                             </td>
                             @endif
 
-                            <td><span class="code-badge">{{ $prod->production_number }}</span></td>
+                            <td><span class="code-badge">{{ $prod->production_code }}</span></td>
 
                             <td>{{ $prod->product->nama_produk ?? 'N/A' }}</td>
 
@@ -293,7 +293,7 @@ function aturSampai(inputDari) {
     }
 }
 
-// Inisialisasi saat load halaman (jika ada filter aktif)
+// Inisialisasi saat load halaman 
 document.addEventListener('DOMContentLoaded', () => {
     const dari   = document.getElementById('input-dari');
     const sampai = document.getElementById('input-sampai');

@@ -278,7 +278,7 @@
                 <table class="db-table">
                     <thead>
                         <tr>
-                            <th>#</th>
+                            <th>No</th>
                             <th>Kode Produksi</th>
                             <th>Produk</th>
                             <th>Tgl Produksi</th>
@@ -293,7 +293,7 @@
 
                             {{-- production_number = plain (VY00001), bukan production_code (cipher) --}}
                             <td style="font-family:monospace; font-weight:600; color:#00a8cc;">
-                                {{ $item->production_number }}
+                                {{ $item->production_code }}
                             </td>
 
                             <td>{{ $item->product->nama_produk ?? '-' }}</td>

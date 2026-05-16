@@ -65,10 +65,11 @@
 {{-- ─── Header ──────────────────────────────────────────────────── --}}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="fw-bold">Produksi & QR Code</h2>
-    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalTambahProduksi">
+    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalBulkProduksi">
         <i class="fas fa-qrcode me-1"></i> Generate QR Baru
     </button>
 </div>
+
 
 {{-- ─── Flash Messages ──────────────────────────────────────────── --}}
 @if(session('success'))
@@ -119,11 +120,10 @@
                     </tr>
                 </thead>
                 <tbody id="tableBody">
-
                     @forelse($productions as $i => $prod)
                     <tr class="prod-row"
                         data-search="{{ strtolower(
-                            $prod->production_number . ' ' .
+                            $prod->production_code . ' ' .
                             ($prod->product->nama_produk ?? '') . ' ' .
                             \Carbon\Carbon::parse($prod->production_date)->format('d m Y') . ' ' .
                             $prod->plain_expiry
@@ -131,19 +131,16 @@
 
                         <td class="text-muted" style="font-size:.8rem;">{{ $i + 1 }}</td>
 
-                        {{-- Tampilkan production_number (plain: VY00001), bukan production_code (cipher) --}}
                         <td>
-                            <code class="fw-bold" style="color:#0d6efd;">{{ $prod->production_number }}</code>
+                            <code class="fw-bold" style="color:#0d6efd;">{{ $prod->production_code }}</code>
                         </td>
 
                         <td>{{ $prod->product->nama_produk ?? 'N/A' }}</td>
 
                         <td>{{ \Carbon\Carbon::parse($prod->production_date)->format('d M Y') }}</td>
 
-                        {{-- Gunakan plain_expiry karena expiration_date di DB sudah cipher --}}
                         <td>{{ $prod->plain_expiry }}</td>
 
-                        {{-- Kolom Qty baru --}}
                         <td>
                             <span class="badge-qty">{{ number_format($prod->qty) }} pcs</span>
                         </td>
@@ -190,18 +187,16 @@
                             </form>
                         </td>
                     </tr>
-
                     @empty
                     <tr>
                         <td colspan="9" class="text-center text-muted py-5">
                             <i class="fas fa-qrcode fs-1 d-block mb-3 text-secondary"></i>
                             Belum ada data produksi.
-                            <a href="#" data-bs-toggle="modal" data-bs-target="#modalTambahProduksi"
+                            <a href="#" data-bs-toggle="modal" data-bs-target="#modalBulkProduksi"
                                class="text-decoration-none">Generate sekarang</a>
                         </td>
                     </tr>
                     @endforelse
-
                 </tbody>
 
                 <tbody id="emptySearch" style="display:none;">
@@ -228,7 +223,6 @@
     <div class="modal fade" id="modalQr{{ $prod->id }}" tabindex="-1">
         <div class="modal-dialog modal-sm modal-dialog-centered">
             <div class="modal-content text-center p-4">
-                {{-- Tampilkan production_number (plain) di modal --}}
                 <div class="fw-bold fs-5 mb-1">{{ $prod->production_number }}</div>
                 <div class="text-muted mb-3" style="font-size:.88rem;">
                     {{ $prod->product->nama_produk ?? 'N/A' }}
@@ -254,91 +248,90 @@
 @endforeach
 
 
-{{-- ─── Modal Generate QR ───────────────────────────────────────── --}}
-<div class="modal fade" id="modalTambahProduksi" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
+{{-- ─── Modal Bulk Generate ───────────────────────────────────────── --}}
+<div class="modal fade" id="modalBulkProduksi" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">
-                    <i class="fas fa-qrcode me-2 text-primary"></i>Generate QR Code Baru
+                    <i class="fas fa-layer-group me-2 text-primary"></i>Bulk Generate QR Code
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form action="{{ route('production.store') }}" method="POST">
+            <form action="{{ route('production.bulk-store') }}" method="POST" id="bulkForm">
                 @csrf
-                <div class="modal-body">
+                <div class="modal-body" style="max-height:65vh; overflow-y:auto;">
 
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Pilih Produk</label>
-                        <select name="product_id" id="product_id" class="form-select" required>
-                            <option value="">-- Pilih Produk --</option>
-                            @foreach($products as $product)
-                                <option value="{{ $product->id }}"
-                                    data-nama="{{ $product->nama_produk }}"
-                                    data-kode="{{ $product->kode_produk }}"
-                                    data-expired="{{ $product->estimasi_expired }}"
-                                    data-foto="{{ $product->foto_produk
-                                        ? asset('storage/'.$product->foto_produk)
-                                        : asset('images/no-image.png') }}">
-                                    {{ $product->nama_produk }} ({{ $product->kode_produk }})
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    {{-- Preview produk --}}
-                    <div class="product-preview mb-3" id="productPreview">
-                        <div class="d-flex gap-3 align-items-center">
-                            <img id="prev_foto" src="" alt="Foto Produk">
-                            <div>
-                                <div class="fw-bold mb-1" id="prev_nama"></div>
-                                <div class="text-muted small">
-                                    Kode: <span class="fw-semibold text-dark" id="prev_kode"></span>
-                                </div>
-                                <div class="text-muted small">
-                                    Masa simpan: <span class="fw-semibold text-dark" id="prev_expired"></span> hari
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Tanggal Produksi</label>
-                        <input type="date" name="production_date" id="production_date"
+                    {{-- Tanggal produksi (shared) --}}
+                    <div class="mb-4 p-3 rounded-3" style="background:#f7fdff; border:1px solid #e0f7fc;">
+                        <label class="form-label fw-semibold mb-1">
+                            <i class="fas fa-calendar-alt me-1 text-info"></i>Tanggal Produksi
+                            <span class="text-muted fw-normal">(berlaku untuk semua item)</span>
+                        </label>
+                        <input type="date" name="production_date" id="bulk_production_date"
                                class="form-control" required>
                     </div>
 
-                    {{-- Estimasi kedaluwarsa otomatis --}}
-                    <div class="expiry-preview mb-3" id="expiryPreview">
-                        <div class="d-flex align-items-center gap-2">
-                            <i class="fas fa-calendar-check text-success fs-5"></i>
-                            <div>
-                                <div class="text-muted" style="font-size:.76rem; text-transform:uppercase; letter-spacing:.5px;">
-                                    Estimasi Kedaluwarsa
+                    {{-- Daftar item produksi --}}
+                    <div id="bulkItems">
+                        {{-- Row pertama (tidak bisa dihapus) --}}
+                        <div class="bulk-item-row mb-3 p-3 rounded-3 border position-relative" data-index="0">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="fw-semibold text-primary item-label" style="font-size:.88rem;">
+                                    <i class="fas fa-box me-1"></i>Produksi #<span class="item-number">1</span>
+                                </span>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-md-8">
+                                    <label class="form-label small fw-semibold">Produk</label>
+                                    <select name="items[0][product_id]" class="form-select form-select-sm bulk-product-select" required>
+                                        <option value="">-- Pilih Produk --</option>
+                                        @foreach($products as $product)
+                                            <option value="{{ $product->id }}"
+                                                data-expired="{{ $product->estimasi_expired }}"
+                                                data-nama="{{ $product->nama_produk }}">
+                                                {{ $product->nama_produk }} ({{ $product->kode_produk }})
+                                            </option>
+                                        @endforeach
+                                    </select>
                                 </div>
-                                <div class="fw-bold text-success" id="expiryDateDisplay" style="font-size:.95rem;"></div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-semibold">Qty (pcs)</label>
+                                    <div class="input-group input-group-sm">
+                                        <input type="number" name="items[0][qty]"
+                                               class="form-control" min="1" placeholder="Qty" required>
+                                        <span class="input-group-text text-muted">pcs</span>
+                                    </div>
+                                </div>
+                            </div>
+                            {{-- Preview kedaluwarsa per baris --}}
+                            <div class="bulk-expiry-preview mt-2" style="display:none; font-size:.82rem;"
+                                 data-for="0">
+                                <i class="fas fa-calendar-check text-success me-1"></i>
+                                Estimasi kedaluwarsa:
+                                <strong class="text-success bulk-expiry-date"></strong>
                             </div>
                         </div>
                     </div>
 
-                    {{-- Input Qty (field baru) --}}
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">
-                            Jumlah Produksi <span class="text-muted fw-normal">(pcs / botol)</span>
-                        </label>
-                        <div class="input-group">
-                            <input type="number" name="qty" id="qty"
-                                   class="form-control" min="1" placeholder="Contoh: 500" required>
-                            <span class="input-group-text text-muted">pcs</span>
-                        </div>
-                        <div class="form-text">Jumlah unit yang diproduksi dalam batch ini.</div>
+                    {{-- Tombol tambah baris --}}
+                    <button type="button" class="btn btn-outline-primary btn-sm w-100" id="addBulkRow">
+                        <i class="fas fa-plus me-1"></i> Tambah Produk Lain
+                    </button>
+
+                    {{-- Ringkasan --}}
+                    <div class="mt-3 p-2 rounded-3 text-muted" id="bulkSummary"
+                         style="background:#f8f9fa; font-size:.82rem; display:none;">
+                        <i class="fas fa-info-circle me-1"></i>
+                        <span id="bulkSummaryText"></span>
                     </div>
 
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-qrcode me-1"></i> Generate QR
+                    <button type="submit" class="btn btn-primary" id="bulkSubmitBtn">
+                        <i class="fas fa-layer-group me-1"></i>
+                        Generate <span id="bulkCountLabel">1</span> QR Code
                     </button>
                 </div>
             </form>
@@ -352,6 +345,7 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
+/* ─── Pagination & Search ───────────────────────────────────────── */
 const ROWS_PER_PAGE = 10;
 let currentPage  = 1;
 let filteredRows = [];
@@ -413,7 +407,7 @@ function renderPagination() {
     const pageSet = new Set([1, totalPages]);
     for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) pageSet.add(i);
     let prev = 0;
-    Array.from(pageSet).sort((a,b)=>a-b).forEach(p => {
+    Array.from(pageSet).sort((a, b) => a - b).forEach(p => {
         if (prev && p - prev > 1) {
             const li = document.createElement('li');
             li.className = 'page-item disabled';
@@ -434,40 +428,7 @@ function changePage(page) {
     document.querySelector('.table-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-/* Modal preview produk + estimasi kedaluwarsa */
-document.addEventListener('DOMContentLoaded', () => {
-    const selectProduk = document.getElementById('product_id');
-    const inputTanggal = document.getElementById('production_date');
-    const elPreview    = document.getElementById('productPreview');
-    const elExpiry     = document.getElementById('expiryPreview');
-
-    function hitungKedaluwarsa() {
-        const opt  = selectProduk.options[selectProduk.selectedIndex];
-        const days = parseInt(opt?.dataset?.expired ?? 0);
-        const tgl  = inputTanggal.value;
-        if (!selectProduk.value || !tgl || isNaN(days)) { elExpiry.style.display = 'none'; return; }
-        const d = new Date(tgl);
-        d.setDate(d.getDate() + days);
-        document.getElementById('expiryDateDisplay').textContent =
-            d.toLocaleDateString('id-ID', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
-        elExpiry.style.display = 'block';
-    }
-
-    selectProduk.addEventListener('change', function () {
-        const opt = this.options[this.selectedIndex];
-        if (!this.value) { elPreview.style.display = 'none'; elExpiry.style.display = 'none'; return; }
-        document.getElementById('prev_foto').src            = opt.dataset.foto;
-        document.getElementById('prev_nama').textContent    = opt.dataset.nama;
-        document.getElementById('prev_kode').textContent    = opt.dataset.kode;
-        document.getElementById('prev_expired').textContent = opt.dataset.expired;
-        elPreview.style.display = 'block';
-        hitungKedaluwarsa();
-    });
-
-    inputTanggal.addEventListener('change', hitungKedaluwarsa);
-});
-
-/* Konfirmasi hapus */
+/* ─── Konfirmasi Hapus ──────────────────────────────────────────── */
 function confirmDelete(id, kode) {
     Swal.fire({
         title: 'Hapus Data Produksi?',
@@ -485,6 +446,139 @@ function confirmDelete(id, kode) {
         if (result.isConfirmed) document.getElementById('deleteForm' + id).submit();
     });
 }
+
+/* ─── Bulk Generate ─────────────────────────────────────────────── */
+(function () {
+    let bulkIndex = 1; // row ke-0 sudah ada
+
+    const products = @json($productsJson);
+
+    const bulkDate  = document.getElementById('bulk_production_date');
+    const bulkItems = document.getElementById('bulkItems');
+
+    function getExpiryText(days, dateVal) {
+        if (!dateVal || isNaN(parseInt(days))) return null;
+        const d = new Date(dateVal);
+        d.setDate(d.getDate() + parseInt(days));
+        return d.toLocaleDateString('id-ID', {
+            weekday: 'long', day: '2-digit', month: 'long', year: 'numeric'
+        });
+    }
+
+    function updateRowExpiry(row) {
+        const sel     = row.querySelector('.bulk-product-select');
+        const preview = row.querySelector('.bulk-expiry-preview');
+        const opt     = sel.options[sel.selectedIndex];
+        const days    = opt?.dataset?.expired;
+        const dateVal = bulkDate.value;
+        if (sel.value && dateVal && days) {
+            const txt = getExpiryText(days, dateVal);
+            if (txt) {
+                preview.querySelector('.bulk-expiry-date').textContent = txt;
+                preview.style.display = 'block';
+                return;
+            }
+        }
+        preview.style.display = 'none';
+    }
+
+    function updateSummary() {
+        const count    = bulkItems.querySelectorAll('.bulk-item-row').length;
+        const summary  = document.getElementById('bulkSummary');
+        const sumText  = document.getElementById('bulkSummaryText');
+        const btnLabel = document.getElementById('bulkCountLabel');
+        btnLabel.textContent = count;
+        if (count > 1) {
+            sumText.textContent = `${count} batch produksi akan di-generate sekaligus dengan nomor berurutan.`;
+            summary.style.display = 'block';
+        } else {
+            summary.style.display = 'none';
+        }
+    }
+
+    function renumberRows() {
+        bulkItems.querySelectorAll('.bulk-item-row').forEach((row, i) => {
+            row.querySelector('.item-number').textContent   = i + 1;
+            row.querySelector('.bulk-product-select').name  = `items[${i}][product_id]`;
+            row.querySelector('input[type="number"]').name  = `items[${i}][qty]`;
+        });
+    }
+
+    function addRow() {
+        const idx = bulkIndex++;
+        const div = document.createElement('div');
+        div.className    = 'bulk-item-row mb-3 p-3 rounded-3 border position-relative';
+        div.dataset.index = idx;
+        div.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="fw-semibold text-primary item-label" style="font-size:.88rem;">
+                    <i class="fas fa-box me-1"></i>Produksi #<span class="item-number">${bulkItems.querySelectorAll('.bulk-item-row').length + 1}</span>
+                </span>
+                <button type="button" class="btn btn-sm btn-outline-danger btn-remove-row" style="padding:2px 8px;font-size:.75rem;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="row g-2">
+                <div class="col-md-8">
+                    <label class="form-label small fw-semibold">Produk</label>
+                    <select name="items[${idx}][product_id]" class="form-select form-select-sm bulk-product-select" required>
+                        <option value="">-- Pilih Produk --</option>
+                        ${products.map(p =>
+                            `<option value="${p.id}" data-expired="${p.expired}" data-nama="${p.nama}">${p.nama} (${p.kode})</option>`
+                        ).join('')}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold">Qty (pcs)</label>
+                    <div class="input-group input-group-sm">
+                        <input type="number" name="items[${idx}][qty]"
+                               class="form-control" min="1" placeholder="Qty" required>
+                        <span class="input-group-text text-muted">pcs</span>
+                    </div>
+                </div>
+            </div>
+            <div class="bulk-expiry-preview mt-2" style="display:none; font-size:.82rem;">
+                <i class="fas fa-calendar-check text-success me-1"></i>
+                Estimasi kedaluwarsa: <strong class="text-success bulk-expiry-date"></strong>
+            </div>`;
+
+        bulkItems.appendChild(div);
+
+        div.querySelector('.bulk-product-select').addEventListener('change', () => updateRowExpiry(div));
+        div.querySelector('.btn-remove-row').addEventListener('click', () => {
+            div.remove();
+            renumberRows();
+            updateSummary();
+        });
+
+        updateSummary();
+    }
+
+    // Event: tombol tambah baris
+    document.getElementById('addBulkRow').addEventListener('click', () => addRow());
+
+    // Event: select produk row pertama
+    document.querySelector('#bulkItems .bulk-product-select')
+        .addEventListener('change', function () {
+            updateRowExpiry(this.closest('.bulk-item-row'));
+        });
+
+    // Event: tanggal berubah → update semua row
+    bulkDate.addEventListener('change', function () {
+        bulkItems.querySelectorAll('.bulk-item-row').forEach(row => updateRowExpiry(row));
+    });
+
+    // Reset modal saat ditutup
+    document.getElementById('modalBulkProduksi').addEventListener('hidden.bs.modal', function () {
+        const rows = bulkItems.querySelectorAll('.bulk-item-row');
+        rows.forEach((r, i) => { if (i > 0) r.remove(); });
+        bulkItems.querySelector('.bulk-product-select').value = '';
+        bulkItems.querySelector('input[type="number"]').value = '';
+        bulkItems.querySelector('.bulk-expiry-preview').style.display = 'none';
+        document.getElementById('bulk_production_date').value = '';
+        updateSummary();
+    });
+})();
 </script>
 
 @endsection

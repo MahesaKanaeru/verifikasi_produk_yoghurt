@@ -29,16 +29,10 @@ class ScanController extends Controller
         $request->validate([
             'qr_data' => 'required|string',
         ]);
-
         try {
             $raw = trim($request->qr_data);
-
-            // Ekstrak nilai ?scan= jika QR berisi URL penuh
-            // Contoh: https://domain.com/?scan=1a2b3c4d...
             if (filter_var($raw, FILTER_VALIDATE_URL)) {
-                $query = parse_url($raw, PHP_URL_QUERY) ?? '';
-                parse_str($query, $params);
-
+                parse_str(parse_url($raw, PHP_URL_QUERY) ?? '', $params);
                 if (!empty($params['scan'])) {
                     $raw = $params['scan'];
                 }
@@ -73,25 +67,27 @@ class ScanController extends Controller
 
             $expDate   = Carbon::createFromFormat('Ymd', $plainExpiry);
             $isExpired = Carbon::now()->startOfDay()->greaterThan($expDate);
-
+            $aes         = new AesService();
+            $productionCode = $aes->decrypt($production->production_code);
             return response()->json([
                 'success'   => true,
                 'integrity' => 'VALID',
                 'data'      => [
-                    'production_code' => $production->production_number,
-                    'product_name'    => $production->product?->nama_produk ?? 'N/A',
-                    'product_size'    => $production->product?->ukuran ?? 'N/A',
-                    'product_image'   => $production->product?->foto_produk
+                    'production_code'           => $productionCode,
+                    'production_code_encrypted' => $production->production_code,   // ← cipher dari DB
+                    'expiry_encrypted'          => $production->expiration_date,   // ← cipher dari DB
+                    'product_name'              => $production->product?->nama_produk ?? 'N/A',
+                    'product_size'              => $production->product?->ukuran ?? 'N/A',
+                    'product_image'             => $production->product?->foto_produk
                         ? asset('storage/' . $production->product->foto_produk)
                         : asset('images/no-image.png'),
-                    'production_date' => Carbon::parse($production->production_date)->format('d M Y'),
-                    'expiration_date' => $expDate->format('d M Y'),
-                    'is_expired'      => $isExpired,
-                    'status'          => $isExpired ? 'KEDALUWARSA' : 'AMAN',
-                    'status_color'    => $isExpired ? 'danger' : 'success',
+                    'production_date'           => Carbon::parse($production->production_date)->format('d M Y'),
+                    'expiration_date'           => $expDate->format('d M Y'),
+                    'is_expired'                => $isExpired,
+                    'status'                    => $isExpired ? 'KEDALUWARSA' : 'AMAN',
+                    'status_color'              => $isExpired ? 'danger' : 'success',
                 ],
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success'   => false,
