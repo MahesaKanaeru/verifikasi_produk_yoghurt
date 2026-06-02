@@ -229,7 +229,6 @@
                         <label class="form-label fw-semibold">Ukuran</label>
                         <select name="ukuran" class="form-select" required>
                             <option value="">-- Pilih Ukuran --</option>
-                            <option value="200 ml (CUP)">200 ml (CUP)</option>
                             <option value="250 ml (Bottle)">250 ml (Bottle)</option>
                         </select>
                     </div>
@@ -241,15 +240,20 @@
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Foto Produk <span class="text-muted fw-normal">(rasio 1:1)</span></label>
+                    <label class="form-label fw-semibold">Foto Produk <span class="text-muted fw-normal"></span></label>
                     <input type="file" name="foto_produk" class="form-control" accept="image/*">
                 </div>
 
-                <div class="mb-1">
-                    <label class="form-label fw-semibold">Desain Label <span class="text-muted fw-normal">(6×4 inci)</span></label>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">
+                        Template Label Produk
+                    </label>
                     <input type="file" name="foto_label" class="form-control" accept="image/*">
+                    <small class="text-muted">
+                        Unggah desain label yang akan dicetak pada kemasan yoghurt. 
+                        Ukuran label yang direkomendasikan adalah 17 x 15,5 cm.
+                    </small>
                 </div>
-
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
@@ -286,7 +290,6 @@
                     <label class="form-label fw-semibold">Ukuran</label>
                     <select name="ukuran" id="edit_ukuran" class="form-select" required>
                         <option value="">-- Pilih Ukuran --</option>
-                        <option value="200 ml (CUP)">200 ml (CUP)</option>
                         <option value="250 ml (Bottle)">250 ml (Bottle)</option>
                     </select>
                 </div>

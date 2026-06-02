@@ -19,14 +19,6 @@
                         <strong>{{ Auth::user()->name }}</strong>
                     </li>
                     <li>
-                        <a class="dropdown-item py-2" href="#">
-                            <i class="fas fa-user-cog me-2 text-muted"></i> Profile Settings
-                        </a>
-                    </li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li>
-                        <a class="dropdown-item py-2 text-danger" href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-
                         <a class="dropdown-item py-2 text-danger" href="#" id="btn-logout">
                             <i class="fas fa-sign-out-alt me-2"></i> Logout
                         </a>
