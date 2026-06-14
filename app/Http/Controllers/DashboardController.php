@@ -15,33 +15,30 @@ class DashboardController extends Controller
         $totalProduk   = Product::count();
         $totalProduksi = Production::count();
 
-        // Ambil semua produksi dengan relasi product
         $allProductions = Production::with('product')->latest()->get();
 
-        // Decrypt expiration_date dulu karena isinya cipher, bukan date biasa
-        // Tidak bisa pakai whereDate langsung di SQL
         $allProductions = $allProductions->map(function ($prod) use ($aes) {
-            $plain = $aes->decrypt($prod->expiration_date);      // → "20250607"
+            $plain = $aes->decrypt($prod->expiration_date);
             $prod->plain_expiry_carbon = Carbon::createFromFormat('Ymd', $plain);
             $prod->plain_expiry        = $prod->plain_expiry_carbon->format('d M Y');
-            $prod->production_code = $aes->decrypt($prod->production_code);
+            $prod->production_code     = $aes->decrypt($prod->production_code);
+
+            // Hitung sisa hari sekali di sini, dipakai juga di view
+            $prod->days_left = now()->startOfDay()->diffInDays($prod->plain_expiry_carbon, false);
+
             return $prod;
         });
 
-        // Hitung hampir kedaluwarsa di PHP (bukan SQL) karena kolom sudah cipher
         $hampirKedaluwarsa = $allProductions->filter(function ($prod) {
-            $expiry = $prod->plain_expiry_carbon;
-            return $expiry->gte(now()->startOfDay()) && $expiry->lte(now()->addDays(7)->endOfDay());
-        })->count();
-
-        // Ambil 5 terbaru untuk tabel recent QR
-        $recentQr = $allProductions->take(5);
+            return $prod->days_left >= 0 && $prod->days_left <= 7;
+        });
 
         return view('dashboard.index', [
             'totalProduk'       => $totalProduk,
             'totalProduksi'     => $totalProduksi,
-            'hampirKedaluwarsa' => $hampirKedaluwarsa,
-            'recentQr'          => $recentQr,
+            'hampirKedaluwarsa' => $hampirKedaluwarsa->count(),
+            // urutkan dari yang paling mendesak (sisa hari paling kecil)
+            'akanKedaluwarsa'   => $hampirKedaluwarsa->sortBy('days_left')->values(),
             'adminName'         => Auth::user()->name,
         ]);
     }

@@ -30,8 +30,4 @@
             </a>
         </li>
     </ul>
-
-    <div class="position-absolute bottom-0 w-100 p-3 text-center opacity-50">
-        <small>v1.0.0-Stable</small>
-    </div>
 </nav>

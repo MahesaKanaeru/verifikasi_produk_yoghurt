@@ -17,7 +17,7 @@ class QrService
     {
         // ================= STORAGE LOKAL =================
         // Untuk development di laptop / WAMP
-        // $base = 'D:/Skripsi/Projek/vtayaapp/storage/app/public';
+        // $base = 'D:\Project\vtaya_veryfy shp\verifikasi_produk_yoghurt/storage/app/public';
 
         // ================= STORAGE HOSTING =================
         // Untuk production di Rumahweb hosting

@@ -28,5 +28,5 @@ return [
     ],
 
     'allowed_format' => ['jpg', 'jpeg', 'png'],
-    'aes_key'        => env('AES_KEY', '1234567890123456'),
+    'aes_key'        => env('AES_KEY', 'VTAYAYOGHURTASLI'),
 ];

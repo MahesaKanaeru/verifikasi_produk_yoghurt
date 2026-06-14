@@ -68,21 +68,6 @@
     </button>
 </div>
 
-{{-- ─── Flash Messages ──────────────────────────────────────────── --}}
-@if(session('success'))
-    <div class="alert alert-success alert-dismissible fade show">
-        <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-@endif
-@if(session('error'))
-    <div class="alert alert-danger alert-dismissible fade show">
-        <i class="fas fa-times-circle me-2"></i>{{ session('error') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-@endif
-
-
 {{-- ─── Table Card ──────────────────────────────────────────────── --}}
 <div class="table-card">
     <div class="table-card-header">
@@ -175,18 +160,17 @@
                         </td>
                     </tr>
                     @endforelse
-
-                </tbody>
-
-                {{-- Empty state saat search tidak ketemu --}}
-                <tbody id="emptySearch" style="display:none;">
-                    <tr>
+                    {{-- Empty state saat search tidak ketemu --}}
+                    <tr id="emptySearchRow" style="display:none;">
                         <td colspan="7" class="text-center text-muted py-4">
                             <i class="fas fa-search d-block mb-2 fs-3 text-secondary"></i>
                             Data tidak ditemukan.
                         </td>
                     </tr>
+
                 </tbody>
+
+                
             </table>
         </div>
 
@@ -240,13 +224,14 @@
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Foto Produk <span class="text-muted fw-normal"></span></label>
+                    <label class="form-label fw-semibold">Foto Produk <span class="text-muted fw-normal"> Max 2 MB</span></label>
                     <input type="file" name="foto_produk" class="form-control" accept="image/*">
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label fw-semibold">
                         Template Label Produk
+                        <span class="text-muted fw-normal"> Max 2 MB</span>
                     </label>
                     <input type="file" name="foto_label" class="form-control" accept="image/*">
                     <small class="text-muted">
@@ -301,13 +286,13 @@
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Update Foto Produk</label>
+                    <label class="form-label fw-semibold">Update Foto Produk <span class="text-muted fw-normal"> Max 2 MB</span></label>
                     <input type="file" name="foto_produk" class="form-control" accept="image/*">
                     <small id="info_foto_produk" class="d-block mt-1"></small>
                 </div>
 
                 <div class="mb-1">
-                    <label class="form-label fw-semibold">Update Desain Label</label>
+                    <label class="form-label fw-semibold">Update Desain Label <span class="text-muted fw-normal"> Max 2 MB</span></label>
                     <input type="file" name="foto_label" class="form-control" accept="image/*">
                     <small id="info_foto_label" class="d-block mt-1"></small>
                 </div>
@@ -330,7 +315,7 @@
 
 <script>
 /* ================================================================
-   PAGINATION — Bootstrap murni, tanpa DataTables / jQuery
+   PAGINATION
    ================================================================ */
 const ROWS_PER_PAGE = 10;
 let currentPage  = 1;
@@ -347,6 +332,38 @@ document.addEventListener('DOMContentLoaded', () => {
         currentPage = 1;
         render();
     });
+
+    // Flash message → SweetAlert
+    @if(session('success'))
+    Swal.fire({
+        icon: 'success',
+        title: 'Berhasil!',
+        html: '{!! session('success') !!}',
+        timer: 2500,
+        timerProgressBar: true,
+        showConfirmButton: false,
+    });
+    @endif
+
+    @if(session('error'))
+    Swal.fire({
+        icon: 'error',
+        title: 'Gagal!',
+        html: '{!! session('error') !!}',
+        confirmButtonColor: '#dc3545',
+        confirmButtonText: 'Tutup',
+    });
+    @endif
+
+    @if($errors->any())
+    Swal.fire({
+        icon: 'error',
+        title: 'Gagal Menyimpan!',
+        html: `{!! implode('<br>', $errors->all()) !!}`,
+        confirmButtonColor: '#dc3545',
+        confirmButtonText: 'Tutup',
+    });
+    @endif
 });
 
 function render() {
@@ -355,10 +372,10 @@ function render() {
     const start = (currentPage - 1) * ROWS_PER_PAGE;
     filteredRows.slice(start, start + ROWS_PER_PAGE).forEach(r => r.style.display = '');
 
-    const emptySearch = document.getElementById('emptySearch');
-    if (emptySearch) {
+    const emptyRow = document.getElementById('emptySearchRow');
+    if (emptyRow) {
         const hasQuery = document.getElementById('searchInput').value.trim() !== '';
-        emptySearch.style.display = (filteredRows.length === 0 && hasQuery) ? '' : 'none';
+        emptyRow.style.display = (filteredRows.length === 0 && hasQuery) ? '' : 'none';
     }
 
     renderInfo();
@@ -425,9 +442,8 @@ function changePage(page) {
     document.querySelector('.table-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-
 /* ================================================================
-   MODAL EDIT — Isi form otomatis dari data-* tombol edit
+   MODAL EDIT
    ================================================================ */
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.btn-edit').forEach(btn => {
@@ -457,7 +473,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-
 /* ================================================================
    SWEETALERT — Konfirmasi Hapus
    ================================================================ */
@@ -476,10 +491,45 @@ function confirmDelete(id, nama) {
         focusCancel:        true,
     }).then(result => {
         if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Menghapus...',
+                text: 'Mohon tunggu sebentar.',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => Swal.showLoading(),
+            });
             document.getElementById('deleteForm' + id).submit();
         }
     });
 }
+
+/* ================================================================
+   SWEETALERT — Loading saat submit form Tambah & Edit
+   ================================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+
+    // Form Tambah Produk
+    document.querySelector('#modalTambah form').addEventListener('submit', function () {
+        Swal.fire({
+            title: 'Menyimpan Produk...',
+            text: 'Mohon tunggu sebentar.',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => Swal.showLoading(),
+        });
+    });
+
+    // Form Edit Produk
+    document.getElementById('formEdit').addEventListener('submit', function () {
+        Swal.fire({
+            title: 'Memperbarui Produk...',
+            text: 'Mohon tunggu sebentar.',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => Swal.showLoading(),
+        });
+    });
+});
 </script>
 
 @endsection

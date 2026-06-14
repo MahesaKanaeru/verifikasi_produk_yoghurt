@@ -18,7 +18,7 @@ class ProductController extends Controller
     {
         // ================= STORAGE LOKAL =================
         // Untuk development di laptop / WAMP
-        // $base = 'D:/Skripsi/Projek/vtayaapp/storage/app/public';
+        // $base = 'D:\Project\vtaya_veryfy shp\verifikasi_produk_yoghurt/storage/app/public';
 
         // ================= STORAGE HOSTING =================
         // Untuk production di Rumahweb hosting
@@ -43,8 +43,8 @@ class ProductController extends Controller
             'nama_produk'      => 'required',
             'ukuran'           => 'required',
             'estimasi_expired' => 'required|numeric',
-            'foto_produk'      => 'image|mimes:jpg,png|max:2048',
-            'foto_label'       => 'image|mimes:jpg,png|max:2048',
+            'foto_produk'      => 'nullable|image|mimes:jpg,jpeg,png|max:5120', 
+            'foto_label'       => 'nullable|image|mimes:jpg,jpeg,png|max:5120', 
         ]);
 
         $data['kode_produk'] = Product::generateKode();
@@ -67,8 +67,8 @@ class ProductController extends Controller
             'nama_produk'      => 'required',
             'ukuran'           => 'required',
             'estimasi_expired' => 'required|numeric',
-            'foto_produk'      => 'nullable|image|mimes:jpg,png|max:2048',
-            'foto_label'       => 'nullable|image|mimes:jpg,png|max:2048',
+            'foto_produk'      => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+            'foto_label'       => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
         ]);
 
         $produk->nama_produk      = $request->nama_produk;

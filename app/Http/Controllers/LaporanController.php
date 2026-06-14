@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Production;
 use App\Services\AesService;
 use Carbon\Carbon;
-use Barryvdh\DomPDF\Facade\Pdf;   // pastikan package sudah di-install
+use Barryvdh\DomPDF\Facade\Pdf;  
 
 class LaporanController extends Controller
 {

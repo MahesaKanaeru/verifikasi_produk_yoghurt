@@ -70,22 +70,6 @@
     </button>
 </div>
 
-
-{{-- ─── Flash Messages ──────────────────────────────────────────── --}}
-@if(session('success'))
-    <div class="alert alert-success alert-dismissible fade show">
-        <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-@endif
-@if(session('error'))
-    <div class="alert alert-danger alert-dismissible fade show">
-        <i class="fas fa-times-circle me-2"></i>{{ session('error') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-@endif
-
-
 {{-- ─── Table Card ──────────────────────────────────────────────── --}}
 <div class="table-card">
     <div class="table-card-header">
@@ -162,12 +146,19 @@
                         <td>
                             @if($prod->final_label_path)
                                 <a href="{{ route('production.download-label', $prod->id) }}"
-                                   class="btn btn-sm btn-outline-dark">
+                                class="btn btn-sm btn-outline-dark">
                                     <i class="fas fa-print me-1"></i>Cetak
                                 </a>
+                                <a href="{{ route('production.print-batch', $prod->id) }}"
+                                    class="btn btn-sm btn-outline-success btn-cetak-massal"
+                                    data-qty="{{ $prod->qty }}"
+                                    data-nama="{{ $prod->product->nama_produk ?? 'Produk' }}"
+                                    onclick="cetakMassal(event, this)">
+                                        <i class="fas fa-copy me-1"></i>Cetak Massal ({{ $prod->qty }})
+                                    </a>
                             @else
                                 <a href="{{ route('production.download-qr', $prod->id) }}"
-                                   class="btn btn-sm btn-outline-primary">
+                                class="btn btn-sm btn-outline-primary">
                                     <i class="fas fa-download me-1"></i>QR
                                 </a>
                             @endif
@@ -361,6 +352,27 @@ document.addEventListener('DOMContentLoaded', () => {
         currentPage = 1;
         render();
     });
+
+    @if(session('success'))
+    Swal.fire({
+        icon: 'success',
+        title: 'Berhasil!',
+        html: '{!! session('success') !!}',
+        timer: 2500,
+        timerProgressBar: true,
+        showConfirmButton: false,
+    });
+    @endif
+
+    @if(session('error'))
+    Swal.fire({
+        icon: 'error',
+        title: 'Gagal!',
+        html: '{!! session('error') !!}', 
+        confirmButtonColor: '#dc3545',
+        confirmButtonText: 'Tutup',
+    });
+    @endif
 });
 
 function render() {
@@ -443,16 +455,91 @@ function confirmDelete(id, kode) {
         reverseButtons:     true,
         focusCancel:        true,
     }).then(result => {
-        if (result.isConfirmed) document.getElementById('deleteForm' + id).submit();
+        if (result.isConfirmed) {
+            // Loading saat proses hapus
+            Swal.fire({
+                title: 'Menghapus...',
+                text: 'Mohon tunggu sebentar.',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => Swal.showLoading(),
+            });
+            document.getElementById('deleteForm' + id).submit();
+        }
+    });
+}
+
+function cetakMassal(e, el) {
+    e.preventDefault();
+
+    const qty      = el.dataset.qty;
+    const nama     = el.dataset.nama;
+    const url      = el.href;
+    const prodId   = url.split('/').filter(Boolean).pop(); // ambil ID dari URL
+    const cookieKey = 'pdf_ready';
+
+    // Hapus cookie lama kalau ada (biar polling tidak langsung selesai)
+    document.cookie = `${cookieKey}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/`;
+
+    Swal.fire({
+        title: 'Membuat PDF...',
+        html: `<b>${nama}</b> &bull; ${qty} pcs<br>
+               <small class="text-muted">Mohon tunggu, file PDF sedang disiapkan...</small>`,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => {
+            Swal.showLoading();
+
+            // Trigger download
+            setTimeout(() => {
+                window.location.href = url;
+            }, 300);
+
+            // Polling cookie tiap 500ms
+            const interval = setInterval(() => {
+                const cookies = document.cookie.split(';').map(c => c.trim());
+                const found   = cookies.find(c => c.startsWith(cookieKey + '='));
+
+                if (found) {
+                    clearInterval(interval);
+
+                    // Hapus cookie
+                    document.cookie = `${cookieKey}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/`;
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'PDF Siap!',
+                        html: `<b>${qty} label</b> berhasil disusun.<br>
+                               <small class="text-muted">File sedang diunduh...</small>`,
+                        timer: 2500,
+                        timerProgressBar: true,
+                        showConfirmButton: false,
+                    });
+                }
+            }, 500);
+
+            // Safety timeout 3 menit — kalau cookie tidak muncul, tetap tutup loading
+            setTimeout(() => {
+                clearInterval(interval);
+                if (Swal.isVisible()) {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'File Sedang Diunduh',
+                        html: `Proses selesai. Cek folder unduhan kamu.<br>
+                               <small class="text-muted">Jika file belum muncul, coba klik tombol Cetak Massal lagi.</small>`,
+                        confirmButtonColor: '#00a8cc',
+                        confirmButtonText: 'OK',
+                    });
+                }
+            }, 180000);
+        }
     });
 }
 
 /* ─── Bulk Generate ─────────────────────────────────────────────── */
 (function () {
-    let bulkIndex = 1; // row ke-0 sudah ada
-
-    const products = @json($productsJson);
-
+    let bulkIndex = 1;
+    const products  = @json($productsJson);
     const bulkDate  = document.getElementById('bulk_production_date');
     const bulkItems = document.getElementById('bulkItems');
 
@@ -498,16 +585,16 @@ function confirmDelete(id, kode) {
 
     function renumberRows() {
         bulkItems.querySelectorAll('.bulk-item-row').forEach((row, i) => {
-            row.querySelector('.item-number').textContent   = i + 1;
-            row.querySelector('.bulk-product-select').name  = `items[${i}][product_id]`;
-            row.querySelector('input[type="number"]').name  = `items[${i}][qty]`;
+            row.querySelector('.item-number').textContent  = i + 1;
+            row.querySelector('.bulk-product-select').name = `items[${i}][product_id]`;
+            row.querySelector('input[type="number"]').name = `items[${i}][qty]`;
         });
     }
 
     function addRow() {
         const idx = bulkIndex++;
         const div = document.createElement('div');
-        div.className    = 'bulk-item-row mb-3 p-3 rounded-3 border position-relative';
+        div.className     = 'bulk-item-row mb-3 p-3 rounded-3 border position-relative';
         div.dataset.index = idx;
         div.innerHTML = `
             <div class="d-flex justify-content-between align-items-center mb-2">
@@ -543,32 +630,67 @@ function confirmDelete(id, kode) {
             </div>`;
 
         bulkItems.appendChild(div);
-
         div.querySelector('.bulk-product-select').addEventListener('change', () => updateRowExpiry(div));
         div.querySelector('.btn-remove-row').addEventListener('click', () => {
             div.remove();
             renumberRows();
             updateSummary();
         });
-
         updateSummary();
     }
 
-    // Event: tombol tambah baris
+    // Submit bulk form → loading SweetAlert
+    document.getElementById('bulkForm').addEventListener('submit', function (e) {
+        // Validasi manual sebelum submit
+        const tanggal = bulkDate.value;
+        if (!tanggal) {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'warning',
+                title: 'Tanggal belum diisi!',
+                text: 'Pilih tanggal produksi terlebih dahulu.',
+                confirmButtonColor: '#00a8cc',
+            });
+            return;
+        }
+
+        const selects = bulkItems.querySelectorAll('.bulk-product-select');
+        let adaKosong = false;
+        selects.forEach(s => { if (!s.value) adaKosong = true; });
+        if (adaKosong) {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'warning',
+                title: 'Produk belum dipilih!',
+                text: 'Pastikan semua baris sudah memilih produk.',
+                confirmButtonColor: '#00a8cc',
+            });
+            return;
+        }
+
+        // Kalau valid, tampilkan loading
+        const jumlah = bulkItems.querySelectorAll('.bulk-item-row').length;
+        Swal.fire({
+            title: 'Generating QR Code...',
+            html: `Sedang membuat <b>${jumlah} batch</b> produksi.<br>
+                   <small class="text-muted">Mohon jangan tutup halaman ini.</small>`,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => Swal.showLoading(),
+        });
+    });
+
     document.getElementById('addBulkRow').addEventListener('click', () => addRow());
 
-    // Event: select produk row pertama
     document.querySelector('#bulkItems .bulk-product-select')
         .addEventListener('change', function () {
             updateRowExpiry(this.closest('.bulk-item-row'));
         });
 
-    // Event: tanggal berubah → update semua row
     bulkDate.addEventListener('change', function () {
         bulkItems.querySelectorAll('.bulk-item-row').forEach(row => updateRowExpiry(row));
     });
 
-    // Reset modal saat ditutup
     document.getElementById('modalBulkProduksi').addEventListener('hidden.bs.modal', function () {
         const rows = bulkItems.querySelectorAll('.bulk-item-row');
         rows.forEach((r, i) => { if (i > 0) r.remove(); });

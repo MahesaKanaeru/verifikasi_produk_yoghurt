@@ -211,6 +211,96 @@
         </div>
     </div>
 </section>
+{{-- LEGALITAS & SERTIFIKASI --}}
+<section id="legalitas" class="py-5" style="background:#f8fdff;">
+    <div class="container">
+        <h3 class="text-center fw-bold mb-2">Legalitas & Sertifikasi</h3>
+        <p class="text-center text-muted mb-4" style="font-size:0.88rem;">
+            VTAYA Yoghurt telah terdaftar dan tersertifikasi resmi
+        </p>
+
+        <div class="row justify-content-center g-3">
+
+            {{-- CARD HALAL --}}
+            <div class="col-10 col-md-5 col-lg-4">
+                <div class="card product-card h-100 text-center p-4"
+                     style="cursor:pointer;" data-bs-toggle="modal" data-bs-target="#halalModal">
+                    <div class="mb-3">
+                        <img src="{{ asset('storage/images/logo_halal.png') }}" alt="Logo Halal" style="height: 50px; object-fit: contain;">
+                    </div>
+                    <h6 class="fw-bold mb-1">Sertifikat Halal</h6>
+                    <p class="text-muted mb-0" style="font-size:0.85rem;">
+                        No. ID32110001040701122
+                    </p>
+                    <small class="text-secondary mt-2"><i class="fas fa-eye me-1"></i>Lihat Sertifikat</small>
+                </div>
+            </div>
+
+            {{-- CARD NIB --}}
+            <div class="col-10 col-md-5 col-lg-4">
+                <div class="card product-card h-100 text-center p-4"
+                     style="cursor:pointer;" data-bs-toggle="modal" data-bs-target="#nibModal">
+                    <div class="mb-3">
+                        <i class="fas fa-id-card fs-1" style="color:#00a8cc;"></i>
+                    </div>
+                    <h6 class="fw-bold mb-1">NIB (Nomor Induk Berusaha)</h6>
+                    <p class="text-muted mb-0" style="font-size:0.85rem;">
+                        No. 9120007970624
+                    </p>
+                    <small class="text-secondary mt-2"><i class="fas fa-eye me-1"></i>Lihat Dokumen</small>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+
+{{-- MODAL HALAL (gambar) --}}
+<div class="modal fade" id="halalModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title"><i class="fas fa-certificate me-2 text-info"></i>Sertifikat Halal</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img src="{{ asset('storage/images/halal_certificate.png') }}"
+                     class="img-fluid rounded shadow-sm" alt="Sertifikat Halal">
+                <p class="mt-2 text-muted" style="font-size:0.85rem;">No. Sertifikat: ID32110001040701122</p>
+            </div>
+            <div class="modal-footer py-2">
+                <a href="{{ asset('storage/images/halal_certificate.png') }}" target="_blank" class="btn btn-sm btn-scan">
+                    <i class="fas fa-external-link-alt me-1"></i> Buka Penuh
+                </a>
+                <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{{-- MODAL NIB (PDF) --}}
+<div class="modal fade" id="nibModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title"><i class="fas fa-id-card me-2 text-info"></i>NIB - Nomor Induk Berusaha</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="height:75vh;">
+                <iframe src="{{ asset('storage/images/nib_sri.pdf') }}"
+                        width="100%" height="100%" style="border:none;"></iframe>
+            </div>
+            <div class="modal-footer py-2">
+                <a href="{{ asset('storage/images/nib_sri.pdf') }}" target="_blank" class="btn btn-sm btn-scan">
+                    <i class="fas fa-external-link-alt me-1"></i> Buka di Tab Baru
+                </a>
+                <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 
 {{-- FOOTER --}}

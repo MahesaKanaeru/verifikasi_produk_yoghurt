@@ -267,15 +267,15 @@
 
     </div>
 
-    {{-- ③ Recent QR Table ─────────────────────── --}}
+    {{-- ③ Produk Akan Kedaluwarsa ─────────────────────── --}}
     <div class="db-section">
         <div class="table-card">
             <div class="table-card-header">
-                <h5><i class="fas fa-qrcode me-2 text-info"></i>QR Produksi Terbaru</h5>
-                <a href="{{ route('production.index') }}">Lihat semua →</a>
+                <h5><i class="fas fa-exclamation-triangle me-2 text-warning"></i>Produk Akan Kedaluwarsa</h5>
             </div>
+
             <div class="table-responsive-wrap">
-                <table class="db-table">
+                <table class="db-table" id="expiryTable">
                     <thead>
                         <tr>
                             <th>No</th>
@@ -283,49 +283,42 @@
                             <th>Produk</th>
                             <th>Tgl Produksi</th>
                             <th>Tgl Exp</th>
-                            <th>Status</th>
+                            <th>Status Kedaluwarsa</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        @forelse($recentQr ?? [] as $i => $item)
-                        <tr>
+                    <tbody id="expiryTableBody">
+                        @forelse($akanKedaluwarsa as $i => $item)
+                        <tr class="exp-row">
                             <td style="color:#bbb; font-size:.7rem;">{{ $i + 1 }}</td>
-
-                            {{-- production_number = plain (VY00001), bukan production_code (cipher) --}}
                             <td style="font-family:monospace; font-weight:600; color:#00a8cc;">
                                 {{ $item->production_code }}
                             </td>
-
                             <td>{{ $item->product->nama_produk ?? '-' }}</td>
-
                             <td>{{ \Carbon\Carbon::parse($item->production_date)->format('d M Y') }}</td>
-
-                            {{-- plain_expiry sudah di-decrypt di DashboardController --}}
                             <td>{{ $item->plain_expiry }}</td>
-
                             <td>
-                                @php
-                                    // plain_expiry_carbon = objek Carbon hasil decrypt 
-                                    $daysLeft = now()->startOfDay()->diffInDays($item->plain_expiry_carbon, false);
-                                @endphp
-                                @if($daysLeft < 0)
-                                    <span class="badge-status badge-expired">Kedaluwarsa</span>
-                                @elseif($daysLeft <= 7)
-                                    <span class="badge-status badge-warn">{{ $daysLeft }}h lagi</span>
+                                @if($item->days_left == 0)
+                                    <span class="badge-status badge-expired">Hari ini</span>
                                 @else
-                                    <span class="badge-status badge-fresh">Segar</span>
+                                    <span class="badge-status badge-warn">{{ $item->days_left }} hari lagi</span>
                                 @endif
                             </td>
                         </tr>
                         @empty
-                        <tr>
+                        <tr id="expiryEmptyRow">
                             <td colspan="6" class="text-center py-4" style="color:#bbb; font-size:.85rem;">
-                                <i class="fas fa-inbox me-2"></i>Belum ada data produksi
+                                <i class="fas fa-check-circle me-2 text-success"></i>Tidak ada produk yang akan kedaluwarsa dalam 7 hari
                             </td>
                         </tr>
                         @endforelse
                     </tbody>
                 </table>
+            </div>
+
+            {{-- Pagination --}}
+            <div class="d-flex justify-content-between align-items-center px-3 py-2" id="expiryPaginationWrapper" style="display:none;">
+                <small class="text-muted" id="expiryInfo"></small>
+                <ul class="pagination pagination-sm mb-0" id="expiryPagination"></ul>
             </div>
         </div>
     </div>
@@ -333,11 +326,70 @@
 </div>
 
 <script>
-const days   = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
-const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
-const now    = new Date();
-document.getElementById('hari-ini').textContent =
-    `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
-</script>
+    const days   = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+    const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+    const now    = new Date();
+    document.getElementById('hari-ini').textContent =
+        `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+    const EXP_ROWS_PER_PAGE = 10;
+    let expCurrentPage = 1;
+    let expAllRows = [];
 
+    document.addEventListener('DOMContentLoaded', () => {
+        expAllRows = Array.from(document.querySelectorAll('#expiryTableBody .exp-row'));
+        renderExpiryTable();
+    });
+
+    function renderExpiryTable() {
+        if (expAllRows.length === 0) return; // empty state, skip pagination
+
+        expAllRows.forEach(r => r.style.display = 'none');
+
+        const start = (expCurrentPage - 1) * EXP_ROWS_PER_PAGE;
+        expAllRows.slice(start, start + EXP_ROWS_PER_PAGE).forEach(r => r.style.display = '');
+
+        renderExpiryInfo();
+        renderExpiryPagination();
+    }
+
+    function renderExpiryInfo() {
+        const total = expAllRows.length;
+        const start = (expCurrentPage - 1) * EXP_ROWS_PER_PAGE + 1;
+        const end   = Math.min(expCurrentPage * EXP_ROWS_PER_PAGE, total);
+        document.getElementById('expiryInfo').textContent =
+            `Menampilkan ${start}–${end} dari ${total} produk`;
+    }
+
+    function renderExpiryPagination() {
+        const totalPages = Math.ceil(expAllRows.length / EXP_ROWS_PER_PAGE);
+        const wrapper = document.getElementById('expiryPaginationWrapper');
+        const ul = document.getElementById('expiryPagination');
+
+        if (totalPages <= 1) { wrapper.style.display = 'none'; return; }
+        wrapper.style.display = 'flex';
+        ul.innerHTML = '';
+
+        const addItem = (label, page, disabled = false, active = false) => {
+            const li = document.createElement('li');
+            li.className = `page-item${disabled ? ' disabled' : ''}${active ? ' active' : ''}`;
+            const a = document.createElement('a');
+            a.className = 'page-link';
+            a.href = '#';
+            a.innerHTML = label;
+            if (!disabled) a.addEventListener('click', e => {
+                e.preventDefault();
+                expCurrentPage = page;
+                renderExpiryTable();
+            });
+            li.appendChild(a);
+            ul.appendChild(li);
+        };
+
+        addItem('‹', expCurrentPage - 1, expCurrentPage === 1);
+        for (let p = 1; p <= totalPages; p++) {
+            addItem(p, p, false, p === expCurrentPage);
+        }
+        addItem('›', expCurrentPage + 1, expCurrentPage === totalPages);
+    }
+</script>
 @endsection
