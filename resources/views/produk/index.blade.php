@@ -42,6 +42,21 @@
         box-shadow: 0 0 0 3px rgba(0,168,204,.1);
     }
 
+    /* Required asterisk */
+    .req { color: #dc3545; margin-left: 2px; }
+
+    /* Optional badge */
+    .opt {
+        font-size: .72rem;
+        font-weight: 400;
+        color: #6c757d;
+        background: #f1f3f5;
+        border-radius: 4px;
+        padding: 1px 6px;
+        margin-left: 6px;
+        vertical-align: middle;
+    }
+
     /* Pagination */
     .pagination .page-link {
         border-radius: 6px !important;
@@ -82,7 +97,6 @@
     </div>
 
     <div class="p-3">
-        {{-- Info total data --}}
         <div class="mb-2">
             <small id="tableInfo" class="text-muted"></small>
         </div>
@@ -122,7 +136,6 @@
                             <span class="badge bg-light text-dark border">{{ $p->estimasi_expired }} Hari</span>
                         </td>
                         <td>
-                            {{-- Tombol Edit --}}
                             <button class="btn btn-sm btn-warning text-white btn-edit me-1"
                                     data-bs-toggle="modal"
                                     data-bs-target="#modalEdit"
@@ -135,7 +148,6 @@
                                 <i class="fas fa-edit"></i>
                             </button>
 
-                            {{-- Tombol Hapus + Hidden Form --}}
                             <button type="button"
                                     class="btn btn-sm btn-danger"
                                     onclick="confirmDelete({{ $p->id }}, '{{ $p->nama_produk }}')">
@@ -160,7 +172,6 @@
                         </td>
                     </tr>
                     @endforelse
-                    {{-- Empty state saat search tidak ketemu --}}
                     <tr id="emptySearchRow" style="display:none;">
                         <td colspan="7" class="text-center text-muted py-4">
                             <i class="fas fa-search d-block mb-2 fs-3 text-secondary"></i>
@@ -169,12 +180,9 @@
                     </tr>
 
                 </tbody>
-
-                
             </table>
         </div>
 
-        {{-- Bootstrap Pagination --}}
         <div class="d-flex justify-content-end mt-2" id="paginationWrapper" style="display:none!important;">
             <ul class="pagination pagination-sm mb-0" id="pagination"></ul>
         </div>
@@ -196,47 +204,64 @@
             </div>
             <div class="modal-body">
 
+                {{-- Keterangan wajib isi --}}
+                <p class="text-muted mb-3" style="font-size:.82rem;">
+                    Kolom dengan tanda <span class="req">*</span> wajib diisi.
+                </p>
+
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Kode Produk</label>
+                    <label class="form-label fw-semibold">
+                        Kode Produk
+                    </label>
                     <input type="text" class="form-control bg-light" value="{{ $nextKode }}" readonly>
                     <small class="text-muted">Kode di-generate otomatis</small>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Nama Produk</label>
+                    <label class="form-label fw-semibold">
+                        Nama Produk <span class="req">*</span>
+                    </label>
                     <input type="text" name="nama_produk" class="form-control"
                            placeholder="Contoh: Strawberry Milk" required>
                 </div>
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label fw-semibold">Ukuran</label>
+                        <label class="form-label fw-semibold">
+                            Ukuran <span class="req">*</span>
+                        </label>
                         <select name="ukuran" class="form-select" required>
                             <option value="">-- Pilih Ukuran --</option>
                             <option value="250 ml (Bottle)">250 ml (Bottle)</option>
                         </select>
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label class="form-label fw-semibold">Est. Expired (Hari)</label>
+                        <label class="form-label fw-semibold">
+                            Est. Expired (Hari) <span class="req">*</span>
+                        </label>
                         <input type="number" name="estimasi_expired" class="form-control"
                                placeholder="14" min="1" required>
                     </div>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Foto Produk <span class="text-muted fw-normal"> Max 2 MB</span></label>
+                    <label class="form-label fw-semibold">
+                        Foto Produk <span class="opt">Opsional</span>
+                        <span class="text-muted fw-normal" style="font-size:.8rem;"> · Max 2 MB</span>
+                    </label>
                     <input type="file" name="foto_produk" class="form-control" accept="image/*">
+                    <small class="text-muted">Bisa ditambahkan atau diperbarui nanti.</small>
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label fw-semibold">
-                        Template Label Produk
-                        <span class="text-muted fw-normal"> Max 2 MB</span>
+                        Template Label Produk <span class="opt">Opsional</span>
+                        <span class="text-muted fw-normal" style="font-size:.8rem;"> · Max 2 MB</span>
                     </label>
                     <input type="file" name="foto_label" class="form-control" accept="image/*">
                     <small class="text-muted">
-                        Unggah desain label yang akan dicetak pada kemasan yoghurt. 
-                        Ukuran label yang direkomendasikan adalah 17 x 15,5 cm.
+                        Bisa ditambahkan atau diperbarui nanti.
+                        Ukuran label yang direkomendasikan adalah 17 × 15,5 cm.
                     </small>
                 </div>
             </div>
@@ -265,34 +290,51 @@
             </div>
             <div class="modal-body">
 
+                {{-- Keterangan wajib isi --}}
+                <p class="text-muted mb-3" style="font-size:.82rem;">
+                    Kolom dengan tanda <span class="req">*</span> wajib diisi.
+                </p>
+
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Nama Produk</label>
+                    <label class="form-label fw-semibold">
+                        Nama Produk <span class="req">*</span>
+                    </label>
                     <input type="text" name="nama_produk" id="edit_nama" class="form-control" required>
                 </div>
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                    <label class="form-label fw-semibold">Ukuran</label>
-                    <select name="ukuran" id="edit_ukuran" class="form-select" required>
-                        <option value="">-- Pilih Ukuran --</option>
-                        <option value="250 ml (Bottle)">250 ml (Bottle)</option>
-                    </select>
-                </div>
+                        <label class="form-label fw-semibold">
+                            Ukuran <span class="req">*</span>
+                        </label>
+                        <select name="ukuran" id="edit_ukuran" class="form-select" required>
+                            <option value="">-- Pilih Ukuran --</option>
+                            <option value="250 ml (Bottle)">250 ml (Bottle)</option>
+                        </select>
+                    </div>
                     <div class="col-md-6 mb-3">
-                        <label class="form-label fw-semibold">Est. Expired (Hari)</label>
+                        <label class="form-label fw-semibold">
+                            Est. Expired (Hari) <span class="req">*</span>
+                        </label>
                         <input type="number" name="estimasi_expired" id="edit_expired"
                                class="form-control" min="1" required>
                     </div>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Update Foto Produk <span class="text-muted fw-normal"> Max 2 MB</span></label>
+                    <label class="form-label fw-semibold">
+                        Update Foto Produk <span class="opt">Opsional</span>
+                        <span class="text-muted fw-normal" style="font-size:.8rem;"> · Max 2 MB</span>
+                    </label>
                     <input type="file" name="foto_produk" class="form-control" accept="image/*">
                     <small id="info_foto_produk" class="d-block mt-1"></small>
                 </div>
 
                 <div class="mb-1">
-                    <label class="form-label fw-semibold">Update Desain Label <span class="text-muted fw-normal"> Max 2 MB</span></label>
+                    <label class="form-label fw-semibold">
+                        Update Desain Label <span class="opt">Opsional</span>
+                        <span class="text-muted fw-normal" style="font-size:.8rem;"> · Max 2 MB</span>
+                    </label>
                     <input type="file" name="foto_label" class="form-control" accept="image/*">
                     <small id="info_foto_label" class="d-block mt-1"></small>
                 </div>
@@ -508,7 +550,6 @@ function confirmDelete(id, nama) {
    ================================================================ */
 document.addEventListener('DOMContentLoaded', () => {
 
-    // Form Tambah Produk
     document.querySelector('#modalTambah form').addEventListener('submit', function () {
         Swal.fire({
             title: 'Menyimpan Produk...',
@@ -519,7 +560,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Form Edit Produk
     document.getElementById('formEdit').addEventListener('submit', function () {
         Swal.fire({
             title: 'Memperbarui Produk...',

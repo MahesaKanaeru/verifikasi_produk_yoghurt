@@ -97,6 +97,49 @@
             gap: 12px;
         }
         .verifying-overlay p { color: #00a8cc; font-weight: 600; font-size: .95rem; }
+
+        /* WATERMARK NIB — tipis + blur */
+        .watermark-nib {
+            position: absolute; inset: 0;
+            pointer-events: none;
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden;
+            z-index: 999;
+            filter: blur(1.2px);
+        }
+        .watermark-nib-text {
+            transform: rotate(-30deg);
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: rgba(0, 0, 0, 0.10);
+            white-space: nowrap;
+            line-height: 3.5;
+            text-align: center;
+            width: 250%;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* WATERMARK HALAL — tipis + blur */
+        .watermark-halal {
+            position: absolute; inset: 0;
+            pointer-events: none;
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden;
+            filter: blur(0.8px);
+        }
+        .watermark-halal-text {
+            transform: rotate(-30deg);
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: rgba(0, 0, 0, 0.07);
+            white-space: nowrap;
+            line-height: 3;
+            text-align: center;
+            width: 200%;
+            user-select: none;
+            -webkit-user-select: none;
+        }
     </style>
 </head>
 <body>
@@ -131,7 +174,7 @@
 
 {{-- HERO --}}
 <section class="hero-section text-center">
-        <div class="container position-relative" style="z-index:1;">
+    <div class="container position-relative" style="z-index:1;">
         <p class="text-uppercase text-secondary fw-semibold mb-2"
            style="letter-spacing:3px; font-size:0.78rem;">
             Selamat Datang di VTAYA
@@ -211,6 +254,7 @@
         </div>
     </div>
 </section>
+
 {{-- LEGALITAS & SERTIFIKASI --}}
 <section id="legalitas" class="py-5" style="background:#f8fdff;">
     <div class="container">
@@ -255,7 +299,6 @@
     </div>
 </section>
 
-
 {{-- MODAL HALAL (gambar) --}}
 <div class="modal fade" id="halalModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -264,44 +307,69 @@
                 <h6 class="modal-title"><i class="fas fa-certificate me-2 text-info"></i>Sertifikat Halal</h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body text-center">
+            <div class="modal-body text-center" style="position:relative;" oncontextmenu="return false;">
                 <img src="{{ asset('storage/images/halal_certificate.png') }}"
-                     class="img-fluid rounded shadow-sm" alt="Sertifikat Halal">
+                     class="img-fluid rounded shadow-sm" alt="Sertifikat Halal"
+                     ondragstart="return false;"
+                     style="user-select:none;-webkit-user-select:none;">
+
+                {{-- Watermark Halal — tipis + blur --}}
+                <div class="watermark-halal">
+                    <div class="watermark-halal-text">
+                        VTAYA YOGHURT &nbsp;&nbsp; VTAYA YOGHURT &nbsp;&nbsp; VTAYA YOGHURT<br>
+                        VTAYA YOGHURT &nbsp;&nbsp; VTAYA YOGHURT &nbsp;&nbsp; VTAYA YOGHURT<br>
+                        VTAYA YOGHURT &nbsp;&nbsp; VTAYA YOGHURT &nbsp;&nbsp; VTAYA YOGHURT
+                    </div>
+                </div>
+
                 <p class="mt-2 text-muted" style="font-size:0.85rem;">No. Sertifikat: ID32110001040701122</p>
-            </div>
-            <div class="modal-footer py-2">
-                <a href="{{ asset('storage/images/halal_certificate.png') }}" target="_blank" class="btn btn-sm btn-scan">
-                    <i class="fas fa-external-link-alt me-1"></i> Buka Penuh
-                </a>
-                <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
             </div>
         </div>
     </div>
 </div>
 
 
-{{-- MODAL NIB (PDF) --}}
+{{-- MODAL NIB (PDF via PDF.js canvas) --}}
 <div class="modal fade" id="nibModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h6 class="modal-title"><i class="fas fa-id-card me-2 text-info"></i>NIB - Nomor Induk Berusaha</h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="resetNibViewer()"></button>
             </div>
-            <div class="modal-body" style="height:75vh;">
-                <iframe src="{{ asset('storage/images/nib_sri.pdf') }}"
-                        width="100%" height="100%" style="border:none;"></iframe>
+            <div class="modal-body" style="height:75vh; position:relative; padding:0; background:#525659;">
+
+                {{-- Loading indicator --}}
+                <div id="nibLoading" class="d-flex align-items-center justify-content-center"
+                    style="position:absolute; inset:0; color:#fff; flex-direction:column; gap:10px; pointer-events:none;">
+                    <div class="spinner-border text-light" role="status"></div>
+                    <span style="font-size:.85rem;">Memuat dokumen…</span>
+                </div>
+
+                {{-- Container scroll untuk semua halaman canvas --}}
+                <div id="nibPagesContainer" oncontextmenu="return false;"
+                    style="height:100%; overflow-y:auto; overflow-x:hidden; padding:12px; display:none;
+                            -webkit-user-select:none; user-select:none; position:relative; z-index:1;">
+                </div>
+
+                {{-- Watermark NIB — tipis + blur --}}
+                <div class="watermark-nib">
+                    <div class="watermark-nib-text">
+                        VTAYA YOGHURT &nbsp;&nbsp;&nbsp; VTAYA YOGHURT &nbsp;&nbsp;&nbsp; VTAYA YOGHURT<br>
+                        VTAYA YOGHURT &nbsp;&nbsp;&nbsp; VTAYA YOGHURT &nbsp;&nbsp;&nbsp; VTAYA YOGHURT<br>
+                        VTAYA YOGHURT &nbsp;&nbsp;&nbsp; VTAYA YOGHURT &nbsp;&nbsp;&nbsp; VTAYA YOGHURT<br>
+                        VTAYA YOGHURT &nbsp;&nbsp;&nbsp; VTAYA YOGHURT &nbsp;&nbsp;&nbsp; VTAYA YOGHURT<br>
+                        VTAYA YOGHURT &nbsp;&nbsp;&nbsp; VTAYA YOGHURT &nbsp;&nbsp;&nbsp; VTAYA YOGHURT
+                    </div>
+                </div>
+
             </div>
             <div class="modal-footer py-2">
-                <a href="{{ asset('storage/images/nib_sri.pdf') }}" target="_blank" class="btn btn-sm btn-scan">
-                    <i class="fas fa-external-link-alt me-1"></i> Buka di Tab Baru
-                </a>
-                <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Tutup</button>
+                <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal" onclick="resetNibViewer()">Tutup</button>
             </div>
         </div>
     </div>
 </div>
-
 
 {{-- FOOTER --}}
 <footer id="contact" class="pt-5">
@@ -403,8 +471,8 @@
                         <div id="resultStatus"></div>
                     </div>
                     <div class="col-12 mt-2">
-                        <a href="javascript:void(0)" id="btnToggleEnkripsi" 
-                        class="text-secondary text-decoration-none small" 
+                        <a href="javascript:void(0)" id="btnToggleEnkripsi"
+                        class="text-secondary text-decoration-none small"
                         onclick="toggleEnkripsi()">
                             <i class="fas fa-eye me-1" id="iconToggle"></i>
                             <span id="labelToggle">Show result enkripsi</span>
@@ -413,7 +481,7 @@
                     <div id="enkripsiBlock" style="display:none;">
                         <hr class="my-2">
                         <p class="text-muted text-center mb-2" style="font-size:0.72rem; letter-spacing:.5px;">
-                            <i class="fas fa-lock me-1"></i> Informasi Kriptografi AES 
+                            <i class="fas fa-lock me-1"></i> Informasi Kriptografi AES
                         </p>
 
                         <div class="col-12 mb-2">
@@ -460,6 +528,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.4/html5-qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
 <script>
     let scanner = null;
@@ -560,7 +629,6 @@
         document.getElementById('resultCodeEncrypted').textContent   = d.production_code_encrypted;
         document.getElementById('resultExpiryEncrypted').textContent = d.expiry_encrypted;
 
-        // Reset toggle tiap buka modal
         document.getElementById('enkripsiBlock').style.display = 'none';
         document.getElementById('iconToggle').className        = 'fas fa-eye me-1';
         document.getElementById('labelToggle').textContent     = 'Tampilkan Data Enkripsi';
@@ -575,12 +643,11 @@
 
         block.style.display = shown ? 'none' : 'block';
         document.getElementById('iconToggle').className = `fas ${shown ? 'fa-eye' : 'fa-eye-slash'} me-1`;
-        
-        // Cukup ubah teks di bagian ini saja
         document.getElementById('labelToggle').textContent = shown
             ? 'Show result enkripsi'
             : 'Hide result enkripsi';
     }
+
     /* MODAL — error */
     function showError(message, integrity) {
         const cfg = {
@@ -618,6 +685,60 @@
         document.getElementById('errorMessage').textContent = message;
 
         new bootstrap.Modal(document.getElementById('errorModal')).show();
+    }
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+    let nibLoaded = false;
+
+    document.getElementById('nibModal').addEventListener('shown.bs.modal', function () {
+        if (nibLoaded) return;
+        nibLoaded = true;
+
+        const url       = "{{ asset('storage/images/nib_sri.pdf') }}";
+        const container = document.getElementById('nibPagesContainer');
+        const loading   = document.getElementById('nibLoading');
+
+        pdfjsLib.getDocument(url).promise.then(function (pdf) {
+            const renderPage = (pageNum) => {
+                pdf.getPage(pageNum).then(function (page) {
+                    const scale    = 1.5;
+                    const viewport = page.getViewport({ scale });
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width  = viewport.width;
+                    canvas.height = viewport.height;
+                    canvas.style.display   = 'block';
+                    canvas.style.margin    = '0 auto 12px auto';
+                    canvas.style.maxWidth  = '100%';
+                    canvas.style.boxShadow = '0 2px 8px rgba(0,0,0,.3)';
+                    canvas.oncontextmenu   = () => false;
+
+                    const ctx = canvas.getContext('2d');
+                    page.render({ canvasContext: ctx, viewport: viewport }).promise.then(() => {
+                        container.appendChild(canvas);
+
+                        if (pageNum === 1) {
+                            loading.style.display   = 'none';
+                            container.style.display = 'block';
+                        }
+
+                        if (pageNum < pdf.numPages) {
+                            renderPage(pageNum + 1);
+                        }
+                    });
+                });
+            };
+            renderPage(1);
+        }).catch(function (err) {
+            loading.innerHTML = '<span style="font-size:.85rem;">Gagal memuat dokumen.</span>';
+            console.error(err);
+        });
+    });
+
+    function resetNibViewer() {
+        // tidak perlu reset, biar canvas tetap ter-cache
     }
 </script>
 </body>

@@ -115,7 +115,7 @@
     margin-left: 3px;
 }
 
-/* ── Recent QR table ──────────────────────── */
+/* ── Table card ──────────────────────────────────── */
 .table-card {
     background: #fff;
     border-radius: 16px;
@@ -125,11 +125,13 @@
     box-shadow: 0 2px 10px rgba(0,0,0,.04);
 }
 .table-card-header {
-    padding: 18px 20px 14px;
+    padding: 16px 20px;
     border-bottom: 1px solid #f0f9fb;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
 }
 .table-card-header h5 {
     font-size: .95rem;
@@ -137,13 +139,32 @@
     color: #222;
     margin: 0;
 }
-.table-card-header a {
-    font-size: .78rem;
-    color: #00a8cc;
-    text-decoration: none;
-    font-weight: 600;
+
+/* ── Search box ─────────────────────────────── */
+.search-box {
+    position: relative;
+    min-width: 200px;
 }
-.table-card-header a:hover { text-decoration: underline; }
+.search-box i {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #aaa;
+    font-size: .85rem;
+}
+.search-box input {
+    padding-left: 30px;
+    font-size: .82rem;
+    border-radius: 8px;
+    border: 1px solid #e0eef3;
+    background: #f7fdff;
+}
+.search-box input:focus {
+    border-color: #00a8cc;
+    box-shadow: 0 0 0 3px rgba(0,168,204,.1);
+    outline: none;
+}
 
 .table-responsive-wrap {
     overflow-x: auto;
@@ -188,6 +209,22 @@
 .badge-warn    { background: #fff3e0; color: #e65100; }
 .badge-expired { background: #fce4ec; color: #b71c1c; }
 
+/* ── Pagination ─────────────────────────────── */
+.pagination .page-link {
+    border-radius: 6px !important;
+    margin: 0 2px;
+    border: 1px solid #e0eef3;
+    color: #00a8cc;
+    font-size: .82rem;
+    padding: 5px 11px;
+}
+.pagination .page-item.active .page-link {
+    background-color: #00a8cc;
+    border-color: #00a8cc;
+    color: #fff;
+}
+.pagination .page-item.disabled .page-link { color: #ccc; }
+
 /* ── Mobile tweaks ────────────────────────── */
 @media (max-width: 767.98px) {
     .welcome-card { padding: 22px 20px 20px; border-radius: 15px; }
@@ -195,6 +232,7 @@
     .stat-card { padding: 16px 15px; border-radius: 13px; }
     .stat-value { font-size: 1.35rem; }
     .stat-icon { width: 42px; height: 42px; font-size: 1rem; }
+    .search-box { min-width: 100%; }
 }
 </style>
 
@@ -267,15 +305,32 @@
 
     </div>
 
-    {{-- ③ Produk Akan Kedaluwarsa ─────────────────────── --}}
+    {{-- ③ Produk Akan Kedaluwarsa ──────────────── --}}
     <div class="db-section">
         <div class="table-card">
+
+            {{-- Header + Search --}}
             <div class="table-card-header">
-                <h5><i class="fas fa-exclamation-triangle me-2 text-warning"></i>Produk Akan Kedaluwarsa</h5>
+                <h5>
+                    <i class="fas fa-exclamation-triangle me-2 text-warning"></i>
+                    Produk Akan Kedaluwarsa
+                </h5>
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text"
+                           id="expirySearch"
+                           class="form-control form-control-sm"
+                           placeholder="Cari kode, nama produk…">
+                </div>
+            </div>
+
+            {{-- Info row --}}
+            <div class="px-3 pt-2 pb-0">
+                <small id="expiryInfo" class="text-muted"></small>
             </div>
 
             <div class="table-responsive-wrap">
-                <table class="db-table" id="expiryTable">
+                <table class="db-table">
                     <thead>
                         <tr>
                             <th>No</th>
@@ -287,8 +342,10 @@
                         </tr>
                     </thead>
                     <tbody id="expiryTableBody">
+
                         @forelse($akanKedaluwarsa as $i => $item)
-                        <tr class="exp-row">
+                        <tr class="exp-row"
+                            data-search="{{ strtolower($item->production_code . ' ' . ($item->product->nama_produk ?? '')) }}">
                             <td style="color:#bbb; font-size:.7rem;">{{ $i + 1 }}</td>
                             <td style="font-family:monospace; font-weight:600; color:#00a8cc;">
                                 {{ $item->production_code }}
@@ -305,91 +362,135 @@
                             </td>
                         </tr>
                         @empty
-                        <tr id="expiryEmptyRow">
+                        <tr id="expiryEmptyDefault">
                             <td colspan="6" class="text-center py-4" style="color:#bbb; font-size:.85rem;">
-                                <i class="fas fa-check-circle me-2 text-success"></i>Tidak ada produk yang akan kedaluwarsa dalam 7 hari
+                                <i class="fas fa-check-circle me-2 text-success"></i>
+                                Tidak ada produk yang akan kedaluwarsa dalam 7 hari
                             </td>
                         </tr>
                         @endforelse
+
+                        {{-- Empty state saat search tidak ketemu --}}
+                        <tr id="expiryEmptySearch" style="display:none;">
+                            <td colspan="6" class="text-center py-4" style="color:#bbb; font-size:.85rem;">
+                                <i class="fas fa-search d-block mb-2 fs-5 text-secondary"></i>
+                                Data tidak ditemukan.
+                            </td>
+                        </tr>
+
                     </tbody>
                 </table>
             </div>
 
             {{-- Pagination --}}
-            <div class="d-flex justify-content-between align-items-center px-3 py-2" id="expiryPaginationWrapper" style="display:none;">
-                <small class="text-muted" id="expiryInfo"></small>
+            <div class="d-flex justify-content-end px-3 py-2" id="expiryPaginationWrapper" style="display:none!important;">
                 <ul class="pagination pagination-sm mb-0" id="expiryPagination"></ul>
             </div>
+
         </div>
     </div>
 
 </div>
 
 <script>
-    const days   = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
-    const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
-    const now    = new Date();
-    document.getElementById('hari-ini').textContent =
-        `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
-    const EXP_ROWS_PER_PAGE = 10;
-    let expCurrentPage = 1;
-    let expAllRows = [];
+/* ── Hari & tanggal ─────────────────────── */
+const days   = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+const now    = new Date();
+document.getElementById('hari-ini').textContent =
+    `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
 
-    document.addEventListener('DOMContentLoaded', () => {
-        expAllRows = Array.from(document.querySelectorAll('#expiryTableBody .exp-row'));
+/* ── Pagination + Search ─────────────────── */
+const EXP_ROWS_PER_PAGE = 10;
+let expCurrentPage = 1;
+let expFilteredRows = [];
+
+document.addEventListener('DOMContentLoaded', () => {
+    expFilteredRows = Array.from(document.querySelectorAll('.exp-row'));
+    renderExpiryTable();
+
+    document.getElementById('expirySearch').addEventListener('input', function () {
+        const q = this.value.toLowerCase().trim();
+        expFilteredRows = Array.from(document.querySelectorAll('.exp-row'))
+            .filter(r => r.dataset.search.includes(q));
+        expCurrentPage = 1;
         renderExpiryTable();
     });
+});
 
-    function renderExpiryTable() {
-        if (expAllRows.length === 0) return; // empty state, skip pagination
+function renderExpiryTable() {
+    document.querySelectorAll('.exp-row').forEach(r => r.style.display = 'none');
 
-        expAllRows.forEach(r => r.style.display = 'none');
+    const start = (expCurrentPage - 1) * EXP_ROWS_PER_PAGE;
+    expFilteredRows.slice(start, start + EXP_ROWS_PER_PAGE).forEach(r => r.style.display = '');
 
-        const start = (expCurrentPage - 1) * EXP_ROWS_PER_PAGE;
-        expAllRows.slice(start, start + EXP_ROWS_PER_PAGE).forEach(r => r.style.display = '');
-
-        renderExpiryInfo();
-        renderExpiryPagination();
+    const emptySearch  = document.getElementById('expiryEmptySearch');
+    const hasQuery     = document.getElementById('expirySearch').value.trim() !== '';
+    if (emptySearch) {
+        emptySearch.style.display = (expFilteredRows.length === 0 && hasQuery) ? '' : 'none';
     }
 
-    function renderExpiryInfo() {
-        const total = expAllRows.length;
-        const start = (expCurrentPage - 1) * EXP_ROWS_PER_PAGE + 1;
-        const end   = Math.min(expCurrentPage * EXP_ROWS_PER_PAGE, total);
-        document.getElementById('expiryInfo').textContent =
-            `Menampilkan ${start}–${end} dari ${total} produk`;
-    }
+    renderExpiryInfo();
+    renderExpiryPagination();
+}
 
-    function renderExpiryPagination() {
-        const totalPages = Math.ceil(expAllRows.length / EXP_ROWS_PER_PAGE);
-        const wrapper = document.getElementById('expiryPaginationWrapper');
-        const ul = document.getElementById('expiryPagination');
+function renderExpiryInfo() {
+    const total = expFilteredRows.length;
+    const start = total === 0 ? 0 : (expCurrentPage - 1) * EXP_ROWS_PER_PAGE + 1;
+    const end   = Math.min(expCurrentPage * EXP_ROWS_PER_PAGE, total);
+    const el    = document.getElementById('expiryInfo');
+    if (el) el.textContent = total > 0 ? `Menampilkan ${start}–${end} dari ${total} batch` : '';
+}
 
-        if (totalPages <= 1) { wrapper.style.display = 'none'; return; }
-        wrapper.style.display = 'flex';
-        ul.innerHTML = '';
+function renderExpiryPagination() {
+    const totalPages = Math.ceil(expFilteredRows.length / EXP_ROWS_PER_PAGE);
+    const wrapper    = document.getElementById('expiryPaginationWrapper');
+    const ul         = document.getElementById('expiryPagination');
+    if (!wrapper || !ul) return;
 
-        const addItem = (label, page, disabled = false, active = false) => {
-            const li = document.createElement('li');
-            li.className = `page-item${disabled ? ' disabled' : ''}${active ? ' active' : ''}`;
-            const a = document.createElement('a');
-            a.className = 'page-link';
-            a.href = '#';
-            a.innerHTML = label;
-            if (!disabled) a.addEventListener('click', e => {
+    if (totalPages <= 1) { wrapper.style.display = 'none'; return; }
+    wrapper.style.display = 'flex';
+    ul.innerHTML = '';
+
+    const addItem = (label, page, disabled = false, active = false) => {
+        const li = document.createElement('li');
+        li.className = `page-item${disabled ? ' disabled' : ''}${active ? ' active' : ''}`;
+        const a  = document.createElement('a');
+        a.className = 'page-link';
+        a.href      = '#';
+        a.innerHTML = label;
+        if (!disabled) {
+            a.addEventListener('click', e => {
                 e.preventDefault();
                 expCurrentPage = page;
                 renderExpiryTable();
+                document.querySelector('.table-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
             });
-            li.appendChild(a);
-            ul.appendChild(li);
-        };
-
-        addItem('‹', expCurrentPage - 1, expCurrentPage === 1);
-        for (let p = 1; p <= totalPages; p++) {
-            addItem(p, p, false, p === expCurrentPage);
         }
-        addItem('›', expCurrentPage + 1, expCurrentPage === totalPages);
+        li.appendChild(a);
+        ul.appendChild(li);
+    };
+
+    addItem('‹', expCurrentPage - 1, expCurrentPage === 1);
+
+    const pageSet = new Set([1, totalPages]);
+    for (let i = Math.max(1, expCurrentPage - 2); i <= Math.min(totalPages, expCurrentPage + 2); i++) {
+        pageSet.add(i);
     }
+    let prev = 0;
+    Array.from(pageSet).sort((a, b) => a - b).forEach(p => {
+        if (prev && p - prev > 1) {
+            const li = document.createElement('li');
+            li.className = 'page-item disabled';
+            li.innerHTML = '<span class="page-link">…</span>';
+            ul.appendChild(li);
+        }
+        addItem(p, p, false, p === expCurrentPage);
+        prev = p;
+    });
+
+    addItem('›', expCurrentPage + 1, expCurrentPage === totalPages);
+}
 </script>
+
 @endsection
