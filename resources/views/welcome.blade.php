@@ -307,22 +307,26 @@
                 <h6 class="modal-title"><i class="fas fa-certificate me-2 text-info"></i>Sertifikat Halal</h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body text-center" style="position:relative;" oncontextmenu="return false;">
-                <img src="{{ asset('storage/images/halal_certificate.png') }}"
-                     class="img-fluid rounded shadow-sm" alt="Sertifikat Halal"
-                     ondragstart="return false;"
-                     style="user-select:none;-webkit-user-select:none;">
+            <div class="modal-body text-center p-0"
+                 style="position:relative; user-select:none; -webkit-user-select:none;"
+                 oncontextmenu="return false;"
+                 ondragstart="return false;">
 
-                {{-- Watermark Halal — tipis + blur --}}
-                <div class="watermark-halal">
-                    <div class="watermark-halal-text">
-                        VTAYA YOGHURT &nbsp;&nbsp; VTAYA YOGHURT &nbsp;&nbsp; VTAYA YOGHURT<br>
-                        VTAYA YOGHURT &nbsp;&nbsp; VTAYA YOGHURT &nbsp;&nbsp; VTAYA YOGHURT<br>
-                        VTAYA YOGHURT &nbsp;&nbsp; VTAYA YOGHURT &nbsp;&nbsp; VTAYA YOGHURT
-                    </div>
+                {{-- Canvas render (blokir visual search & klik kanan) --}}
+                <canvas id="halalCanvas"
+                        style="max-width:100%; display:block; margin:0 auto; pointer-events:none; -webkit-user-drag:none;">
+                </canvas>
+
+                {{-- Overlay transparan blokir klik kanan di atas canvas --}}
+                <div style="position:absolute; inset:0; z-index:10;"
+                     oncontextmenu="return false;"
+                     ondragstart="return false;"
+                     onselectstart="return false;">
                 </div>
 
-                <p class="mt-2 text-muted" style="font-size:0.85rem;">No. Sertifikat: ID32110001040701122</p>
+                <p class="mt-2 mb-2 text-muted" style="font-size:0.85rem; position:relative; z-index:11;">
+                    No. Sertifikat: ID32110001040701122
+                </p>
             </div>
         </div>
     </div>
@@ -740,6 +744,49 @@
     function resetNibViewer() {
         // tidak perlu reset, biar canvas tetap ter-cache
     }
+    let halalCanvasRendered = false;
+
+    document.getElementById('halalModal').addEventListener('shown.bs.modal', function () {
+        if (halalCanvasRendered) return;
+        halalCanvasRendered = true;
+
+        const canvas = document.getElementById('halalCanvas');
+        const ctx    = canvas.getContext('2d');
+
+        const img = new Image();
+        // Crossorigin penting jika storage di domain berbeda
+        img.crossOrigin = 'anonymous';
+        img.src = "{{ asset('storage/images/halal_certificate.png') }}";
+
+        img.onload = function () {
+            // Sesuaikan ukuran canvas dengan gambar asli
+            canvas.width  = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            ctx.drawImage(img, 0, 0);
+
+            // Tambahkan watermark teks di atas canvas (lapisan kedua perlindungan)
+            ctx.save();
+            ctx.globalAlpha = 0.08;
+            ctx.font = 'bold 60px Poppins, sans-serif';
+            ctx.fillStyle = '#000000';
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.rotate(-Math.PI / 6); // -30 derajat
+            for (let y = -canvas.height; y < canvas.height; y += 180) {
+                for (let x = -canvas.width; x < canvas.width; x += 400) {
+                    ctx.fillText('VTAYA YOGHURT', x, y);
+                }
+            }
+            ctx.restore();
+        };
+
+        img.onerror = function () {
+            ctx.fillStyle = '#eee';
+            ctx.fillRect(0, 0, 400, 200);
+            ctx.fillStyle = '#999';
+            ctx.font = '16px sans-serif';
+            ctx.fillText('Gagal memuat sertifikat.', 20, 100);
+        };
+    });
 </script>
 </body>
 </html>
