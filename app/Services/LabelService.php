@@ -2,27 +2,19 @@
 
 namespace App\Services;
 
-
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
 
 class LabelService
 {
-    // old
-    // private function storagePath(string $relativePath = ''): string
-    // {
-    //     $base = '/home/cery9751/public_html/vtaya-yoghurt-verify.my.id/storage';
-    //     return $relativePath ? $base . '/' . ltrim($relativePath, '/') : $base;
-    // }
     private function storagePath(string $relativePath = ''): string
     {
-        // ================= STORAGE LOKAL =================
-        // Untuk development di laptop / WAMP
-        // $base = 'D:\Project\vtaya_veryfy shp\verifikasi_produk_yoghurt/storage/app/public';
-
         // ================= STORAGE HOSTING =================
-        // Untuk production di Rumahweb hosting
+        // $base = 'D:\Project\vtaya_veryfy shp\verifikasi_produk_yoghurt/storage/app/public';
+    
+        // ================= STORAGE HOSTING =================
         $base = '/home/cery9751/public_html/vtaya-yoghurt-verify.my.id/storage';
+
 
         return $relativePath
             ? $base . '/' . ltrim($relativePath, '/')
@@ -40,6 +32,29 @@ class LabelService
         return config('label.bottle_250');
     }
 
+    /**
+     * Cari file font yang tersedia.
+     * Prioritas: Montserrat-Bold → Montserrat-SemiBold → Montserrat (regular) → null (pakai default GD)
+     */
+    private function resolveFontPath(): ?string
+    {
+        $candidates = [
+            $this->storagePath('fonts/Montserrat-Bold.ttf'),
+            $this->storagePath('fonts/Montserrat-SemiBold.ttf'),
+            $this->storagePath('fonts/MontserratBold.ttf'),
+            $this->storagePath('fonts/Montserrat.ttf'),
+        ];
+
+        foreach ($candidates as $path) {
+            if (file_exists($path) && is_readable($path)) {
+                return $path;
+            }
+        }
+
+        // Font tidak ditemukan → GD akan pakai font bawaan
+        return null;
+    }
+
     public function mergeQrToLabel(
         $productLabelPath,
         $qrCodePath,
@@ -49,8 +64,11 @@ class LabelService
         string $ukuran = '250 ml (Bottle)'
     ) {
         if (empty($productLabelPath)) {
-        throw new \InvalidArgumentException('Template label produk belum diisi. Tambahkan foto label pada data produk terlebih dahulu.');
+            throw new \InvalidArgumentException(
+                'Template label produk belum diisi. Tambahkan foto label pada data produk terlebih dahulu.'
+            );
         }
+
         $manager = new ImageManager(new Driver());
 
         try {
@@ -72,34 +90,27 @@ class LabelService
         $centerX    = (int) ($cfg['center_x_cm']     * $cmToInch * $dpi);
         $prodY      = (int) ($cfg['prod_pos_y_cm']   * $cmToInch * $dpi);
         $expY       = (int) ($prodY + ($cfg['exp_gap_cm'] * $cmToInch * $dpi));
-        $fontSizePx = (int) $cfg['font_size'];
+
+        // ✅ REVISI: Naikkan ukuran font (tambah ~20-30% dari nilai config)
+        // Kalau config font_size = 30, sekarang jadi ~38
+        $fontSizePx = (int) ($cfg['font_size'] * 1.3);
 
         $label->resize($targetW, $targetH);
         $qr->resize($qrSize, $qrSize);
         $label->place($qr, 'top-left', $posX, $posY);
 
         $prodText = 'PROD : ' . date('Ymd', strtotime($productionDate));
-        $expText  = 'EXP : '  . date('Ymd', strtotime($expirationDate));
+        $expText  = 'EXP  : ' . date('Ymd', strtotime($expirationDate));
 
-        $fontPath = $this->storagePath('fonts/Montserrat.ttf');
+        // ✅ Cari font terbaik yang tersedia
+        $fontPath = $this->resolveFontPath();
 
-        $label->text($prodText, $centerX, $prodY, function ($font) use ($fontSizePx, $fontPath) {
-            $font->file($fontPath);
-            $font->size($fontSizePx);
-            $font->color('#000000');
-            $font->align('center');
-            $font->valign('top');
-        });
+        // ✅ TRICK TEBAL: Gambar teks beberapa kali dengan offset 1px
+        // Ini mensimulasikan efek bold kalau font Regular yang terpakai
+        $this->drawBoldText($label, $prodText, $centerX, $prodY, $fontSizePx, $fontPath);
+        $this->drawBoldText($label, $expText,  $centerX, $expY,  $fontSizePx, $fontPath);
 
-        $label->text($expText, $centerX, $expY, function ($font) use ($fontSizePx, $fontPath) {
-            $font->file($fontPath);
-            $font->size($fontSizePx);
-            $font->color('#000000');
-            $font->align('center');
-            $font->valign('top');
-        });
-
-        $unique = time() . '_' . uniqid();
+        $unique   = time() . '_' . uniqid();
         $filename = $productionCode . '_' . $unique . '_label.png';
         $folder   = $this->storagePath('final_labels');
 
@@ -110,5 +121,37 @@ class LabelService
         $label->save($folder . DIRECTORY_SEPARATOR . $filename, 100);
 
         return 'final_labels/' . $filename;
+    }
+
+    /**
+     * Gambar teks dengan efek bold menggunakan teknik stroke/multi-draw.
+     * Teks digambar 5x dengan offset kecil → tampak tebal meski pakai font Regular.
+     *
+     * @param \Intervention\Image\Image $image
+     * @param string      $text
+     * @param int         $x
+     * @param int         $y
+     * @param int         $size
+     * @param string|null $fontPath
+     */
+    private function drawBoldText($image, string $text, int $x, int $y, int $size, ?string $fontPath): void
+    {
+        // Offset untuk efek bold (dalam pixel, sesuaikan jika perlu)
+        $offsets = [
+            [-1, 0], [1, 0], [0, -1], [0, 1],  // 4 arah
+            [0, 0],                               // tengah (lapisan utama)
+        ];
+
+        foreach ($offsets as [$dx, $dy]) {
+            $image->text($text, $x + $dx, $y + $dy, function ($font) use ($size, $fontPath) {
+                if ($fontPath) {
+                    $font->file($fontPath);
+                }
+                $font->size($size);
+                $font->color('#000000');
+                $font->align('center');
+                $font->valign('top');
+            });
+        }
     }
 }
